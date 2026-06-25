@@ -2,34 +2,58 @@ import 'dart:convert';
 import 'dart:developer' as developer;
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
+import 'package:flutter_map/flutter_map.dart'; // Harita sınırları (LatLngBounds) için eklendi
+
+class SearchResult {
+  final String name;
+  final LatLng location;
+
+  SearchResult({required this.name, required this.location});
+}
 
 class GeocodingService {
-  // Arama metnini (Örn: "Galata Kulesi") alıp koordinata çeviren fonksiyon
-  Future<LatLng?> searchPlace(String query) async {
-    // Nominatim API URL'i (limit=1 diyerek sadece en alakalı ilk sonucu istiyoruz)
-    final url = Uri.parse('https://nominatim.openstreetmap.org/search?q=$query&format=json&limit=1');
+  // YENİ: Hem biasLocation (Merkez) hem de bounds (Ekran Çerçevesi) alabilir
+  Future<List<SearchResult>> searchPlace(String query, {LatLng? biasLocation, LatLngBounds? bounds}) async {
+    
+    String urlString = 'https://photon.komoot.io/api/?q=$query&limit=5';
+    
+    // Eğer ekranın çerçevesi verildiyse (En Kesin Arama)
+    if (bounds != null) {
+      // Photon Formatı: minLon, minLat, maxLon, maxLat (Batı, Güney, Doğu, Kuzey)
+      urlString += '&bbox=${bounds.west},${bounds.south},${bounds.east},${bounds.north}';
+    } 
+    // Eğer çerçeve yok ama merkez nokta verildiyse (Yumuşak Arama)
+    else if (biasLocation != null) {
+      urlString += '&lat=${biasLocation.latitude}&lon=${biasLocation.longitude}';
+    }
+
+    final url = Uri.parse(urlString);
     
     try {
-      final response = await http.get(url, headers: {
-        // OSM sunucularının bizi engellememesi için User-Agent veriyoruz
-        'User-Agent': 'com.example.travel_planner',
-      });
+      final response = await http.get(url);
       
       if (response.statusCode == 200) {
-        final List data = json.decode(response.body);
+        final data = json.decode(response.body);
+        final features = data['features'] as List;
         
-        // Eğer sonuç boş dönmediyse (mekan bulunduysa)
-        if (data.isNotEmpty) {
-          final lat = double.parse(data[0]['lat']);
-          final lon = double.parse(data[0]['lon']);
-          return LatLng(lat, lon); // Koordinatı döndür
+        List<SearchResult> results = [];
+        
+        for (var f in features) {
+          final coords = f['geometry']['coordinates']; 
+          final props = f['properties'];
+          
+          final name = props['name'] ?? props['street'] ?? query; 
+          
+          results.add(SearchResult(
+            name: name,
+            location: LatLng(coords[1], coords[0]), 
+          ));
         }
+        return results;
       }
     } catch (e) {
-      developer.log('Arama işlemi sırasında hata oluştu: $e', name: 'GeocodingService');
+      developer.log('Arama Hatası: $e', name: 'GeocodingService');
     }
-    
-    // Bulunamazsa veya hata olursa null döndür
-    return null;
+    return [];
   }
 }

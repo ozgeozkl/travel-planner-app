@@ -52,4 +52,15 @@ class DatabaseService {
       throw Exception('Yer silinemedi.');
     }
   }
+  // YENİ: Var olan pini güncelle
+  Future<void> updatePin(PinModel pin) async {
+    if (pin.id == null) return;
+    try {
+      await _db.collection('pins').doc(pin.id).update(pin.toMap());
+      developer.log('Pin başarıyla güncellendi', name: 'DatabaseService');
+    } catch (e) {
+      developer.log('Pin güncellenirken hata: $e', name: 'DatabaseService');
+      throw Exception('Yer güncellenemedi.');
+    }
+  }
 }
