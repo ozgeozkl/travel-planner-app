@@ -5,11 +5,12 @@ class PinModel {
   final String? id;
   final String userId;
   final String title;
-  final String? note;       // YENİ: İsteğe bağlı not alanı
-  final int color;          // YENİ: Renk kodu (Sayısal değer olarak)
+  final String? note;
+  final int color;
   final double latitude;
   final double longitude;
   final DateTime createdAt;
+  final String? imageUrl; // YENİ: Fotoğraf URL'si
 
   PinModel({
     this.id,
@@ -20,6 +21,7 @@ class PinModel {
     required this.latitude,
     required this.longitude,
     required this.createdAt,
+    this.imageUrl, // YENİ
   });
 
   Map<String, dynamic> toMap() {
@@ -31,6 +33,7 @@ class PinModel {
       'latitude': latitude,
       'longitude': longitude,
       'createdAt': Timestamp.fromDate(createdAt),
+      'imageUrl': imageUrl, // YENİ
     };
   }
 
@@ -39,12 +42,12 @@ class PinModel {
       id: documentId,
       userId: map['userId'] ?? '',
       title: map['title'] ?? '',
-      note: map['note'], // Null olabilir
-      // Renk yoksa varsayılan olarak Kırmızı (0xFFF44336) yap
-      color: map['color'] ?? 0xFFF44336, 
+      note: map['note'],
+      color: map['color'] ?? 0xFFF44336,
       latitude: (map['latitude'] as num).toDouble(),
       longitude: (map['longitude'] as num).toDouble(),
       createdAt: (map['createdAt'] as Timestamp).toDate(),
+      imageUrl: map['imageUrl'], // YENİ
     );
   }
 

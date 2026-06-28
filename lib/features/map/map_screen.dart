@@ -1,8 +1,13 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb; // YENİ: Web platformunu algılamak için
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:geolocator/geolocator.dart'; 
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'dart:developer' as developer;
 import '../../services/auth_service.dart';
 import '../../services/database_service.dart';
 import '../../services/geocoding_service.dart';
@@ -87,11 +92,14 @@ class _MapScreenState extends State<MapScreen> {
     final List<Color> dialogColors = [
       Colors.red, Colors.blue, Colors.green, Colors.orange, Colors.purple, Colors.teal,
     ];
-
     Color selectedColor = existingPin != null ? Color(existingPin.color) : Colors.red;
+    
+    XFile? selectedImage;
+    bool isUploading = false;
 
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
+      barrierDismissible: false, 
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setStateDialog) {
@@ -106,14 +114,66 @@ class _MapScreenState extends State<MapScreen> {
                       decoration: const InputDecoration(hintText: 'Mekan Adı (Zorunlu)', labelText: 'Mekan Adı'),
                       autofocus: existingPin == null && suggestedTitle == null,
                       textCapitalization: TextCapitalization.words,
+                      enabled: !isUploading,
                     ),
                     const SizedBox(height: 12),
                     TextField(
                       controller: noteController,
                       decoration: const InputDecoration(hintText: 'Buraya dair notlarınız...', labelText: 'Not (İsteğe Bağlı)'),
                       maxLines: 3,
+                      enabled: !isUploading,
                     ),
                     const SizedBox(height: 16),
+                    
+                    // --- WEB VE MOBİL UYUMLU FOTOĞRAF SEÇİCİ ---
+                    GestureDetector(
+                      onTap: isUploading ? null : () async {
+                        final ImagePicker picker = ImagePicker();
+                        // HARİKA KISAYOL: Seçerken sıkıştır! Ekstra pakete gerek kalmadı.
+                        final XFile? image = await picker.pickImage(
+                          source: ImageSource.gallery,
+                          maxWidth: 1080, 
+                          imageQuality: 85, 
+                        );
+                        if (image != null) {
+                          setStateDialog(() => selectedImage = image);
+                        }
+                      },
+                      child: Container(
+                        height: 120,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[200],
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.grey[400]!, width: 1, style: BorderStyle.solid),
+                          image: selectedImage != null 
+                              // WEB ise NetworkImage, Mobil ise FileImage kullanıyoruz
+                              ? DecorationImage(
+                                  image: kIsWeb 
+                                      ? NetworkImage(selectedImage!.path) as ImageProvider
+                                      : FileImage(File(selectedImage!.path)), 
+                                  fit: BoxFit.cover
+                                )
+                              : (existingPin?.imageUrl != null && existingPin!.imageUrl!.isNotEmpty
+                                  ? DecorationImage(image: NetworkImage(existingPin.imageUrl!), fit: BoxFit.cover) 
+                                  : null),
+                        ),
+                        child: selectedImage == null && (existingPin?.imageUrl == null || existingPin!.imageUrl!.isEmpty)
+                            ? const Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.add_a_photo, color: Colors.grey, size: 30),
+                                    SizedBox(height: 8),
+                                    Text('Fotoğraf Ekle', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+                                  ],
+                                ),
+                              )
+                            : null,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
                     const Text('Pin Rengi Seçin:', style: TextStyle(fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),
                     Wrap(
@@ -121,9 +181,7 @@ class _MapScreenState extends State<MapScreen> {
                       children: [
                         for (var color in dialogColors)
                           GestureDetector(
-                            onTap: () {
-                              setStateDialog(() => selectedColor = color);
-                            },
+                            onTap: isUploading ? null : () => setStateDialog(() => selectedColor = color),
                             child: Container(
                               width: 32, height: 32,
                               decoration: BoxDecoration(
@@ -134,16 +192,58 @@ class _MapScreenState extends State<MapScreen> {
                           )
                       ],
                     ),
+
+                    if (isUploading) ...[
+                      const SizedBox(height: 20),
+                      const Center(child: CircularProgressIndicator()),
+                      const SizedBox(height: 8),
+                      const Center(child: Text('Görsel buluta yükleniyor...\nLütfen bekleyin.', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Colors.blue))),
+                    ]
                   ],
                 ),
               ),
               actions: [
-                TextButton(onPressed: () => Navigator.pop(context, null), child: const Text('İptal')),
+                TextButton(
+                  onPressed: isUploading ? null : () => Navigator.pop(context, null), 
+                  child: const Text('İptal')
+                ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(backgroundColor: selectedColor, foregroundColor: Colors.white),
-                  onPressed: () {
+                  onPressed: isUploading ? null : () async {
                     if (titleController.text.trim().isEmpty) return; 
-                    Navigator.pop(context, {'title': titleController.text.trim(), 'note': noteController.text.trim(), 'color': selectedColor.value});
+                    
+                    String? finalImageUrl = existingPin?.imageUrl;
+
+                    // YENİ UYUM: Fotoğrafı Web'de ve Mobilde ortak okuyan yöntem
+                    if (selectedImage != null) {
+                      setStateDialog(() => isUploading = true);
+                      try {
+                        // Dosyayı byte (veri) olarak okuruz, bu sayede hem Web'de hem mobilde çalışır
+                        final bytes = await selectedImage!.readAsBytes();
+                        
+                        final String fileName = 'pins/${_currentUserId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+                        final Reference ref = FirebaseStorage.instance.ref().child(fileName);
+                        
+                        final UploadTask uploadTask = ref.putData(bytes, SettableMetadata(contentType: 'image/jpeg'));
+                        final TaskSnapshot snapshot = await uploadTask;
+                        finalImageUrl = await snapshot.ref.getDownloadURL(); 
+                        
+                      } catch (e) {
+                        developer.log('Storage Yükleme Hatası: $e', name: 'MapScreen');
+                        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Fotoğraf yüklenemedi.'), backgroundColor: Colors.red));
+                      } finally {
+                        if (mounted) setStateDialog(() => isUploading = false);
+                      }
+                    }
+
+                    if (mounted) {
+                      Navigator.pop(context, {
+                        'title': titleController.text.trim(),
+                        'note': noteController.text.trim(),
+                        'color': selectedColor.value,
+                        'imageUrl': finalImageUrl, 
+                      });
+                    }
                   },
                   child: const Text('Kaydet'),
                 ),
@@ -156,7 +256,16 @@ class _MapScreenState extends State<MapScreen> {
 
     if (result != null) {
       if (existingPin == null && point != null) {
-        final newPin = PinModel(userId: _currentUserId, title: result['title'], note: result['note'].isEmpty ? null : result['note'], color: result['color'], latitude: point.latitude, longitude: point.longitude, createdAt: DateTime.now());
+        final newPin = PinModel(
+          userId: _currentUserId, 
+          title: result['title'], 
+          note: result['note'].isEmpty ? null : result['note'], 
+          color: result['color'], 
+          latitude: point.latitude, 
+          longitude: point.longitude, 
+          createdAt: DateTime.now(),
+          imageUrl: result['imageUrl'], 
+        );
         try {
           await _databaseService.addPin(newPin);
           if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Kaydedildi!'), backgroundColor: Colors.green));
@@ -165,7 +274,17 @@ class _MapScreenState extends State<MapScreen> {
           if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Hata oluştu.'), backgroundColor: Colors.red));
         }
       } else if (existingPin != null) {
-        final updatedPin = PinModel(id: existingPin.id, userId: existingPin.userId, title: result['title'], note: result['note'].isEmpty ? null : result['note'], color: result['color'], latitude: existingPin.latitude, longitude: existingPin.longitude, createdAt: existingPin.createdAt);
+        final updatedPin = PinModel(
+          id: existingPin.id, 
+          userId: existingPin.userId, 
+          title: result['title'], 
+          note: result['note'].isEmpty ? null : result['note'], 
+          color: result['color'], 
+          latitude: existingPin.latitude, 
+          longitude: existingPin.longitude, 
+          createdAt: existingPin.createdAt,
+          imageUrl: result['imageUrl'], 
+        );
         try {
           await _databaseService.updatePin(updatedPin);
           if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Güncellendi!'), backgroundColor: Colors.green));
@@ -185,16 +304,43 @@ class _MapScreenState extends State<MapScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            
+            if (pin.imageUrl != null && pin.imageUrl!.isNotEmpty) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(
+                  pin.imageUrl!,
+                  height: 130,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return Container(
+                      height: 130, width: double.infinity,
+                      color: Colors.grey[200],
+                      child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                    );
+                  },
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    height: 130, width: double.infinity,
+                    color: Colors.grey[200],
+                    child: const Icon(Icons.broken_image, color: Colors.grey, size: 40),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+            ],
+
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Expanded(child: Text(pin.title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(pin.color)), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                Expanded(child: Text(pin.title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(pin.color)), maxLines: 1, overflow: TextOverflow.ellipsis)),
                 IconButton(icon: const Icon(Icons.close, size: 20, color: Colors.grey), onPressed: () => setState(() => _openedPopupPin = null), padding: EdgeInsets.zero, constraints: const BoxConstraints()),
               ],
             ),
             const Divider(),
             if (pin.note != null && pin.note!.isNotEmpty)
-              Text(pin.note!, style: const TextStyle(fontSize: 12, color: Colors.black87), maxLines: 3, overflow: TextOverflow.ellipsis)
+              Text(pin.note!, style: const TextStyle(fontSize: 13, color: Colors.black87), maxLines: 3, overflow: TextOverflow.ellipsis)
             else
               const Text('Not eklenmemiş.', style: TextStyle(fontSize: 12, color: Colors.black54, fontStyle: FontStyle.italic)),
             const SizedBox(height: 12),
@@ -209,7 +355,8 @@ class _MapScreenState extends State<MapScreen> {
                     final bool? confirm = await showDialog(
                       context: context,
                       builder: (context) => AlertDialog(
-                        title: const Text('Emin misiniz?'), content: Text('${pin.title} silinecek.'),
+                        title: const Text('Emin misiniz?'), 
+                        content: Text(pin.imageUrl != null ? '${pin.title} ve içindeki fotoğraf kalıcı olarak silinecek.' : '${pin.title} silinecek.'),
                         actions: [
                           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('İptal')),
                           ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white), onPressed: () => Navigator.pop(context, true), child: const Text('Sil')),
@@ -272,7 +419,9 @@ class _MapScreenState extends State<MapScreen> {
                           if (pin.id != null) await _databaseService.deletePin(pin.id!);
                         },
                         child: ListTile(
-                          leading: CircleAvatar(backgroundColor: Color(pin.color), child: const Icon(Icons.location_on, color: Colors.white)),
+                          leading: pin.imageUrl != null && pin.imageUrl!.isNotEmpty
+                              ? CircleAvatar(backgroundImage: NetworkImage(pin.imageUrl!), backgroundColor: Color(pin.color))
+                              : CircleAvatar(backgroundColor: Color(pin.color), child: const Icon(Icons.location_on, color: Colors.white)),
                           title: Text(pin.title, style: const TextStyle(fontWeight: FontWeight.bold)),
                           subtitle: Text(pin.note ?? 'Haritada görmek için dokunun', maxLines: 1, overflow: TextOverflow.ellipsis),
                           trailing: IconButton(icon: const Icon(Icons.edit, color: Colors.grey), onPressed: () { Navigator.pop(context); _showPinDialog(existingPin: pin); }),
@@ -290,7 +439,6 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
-  // --- GLOBAL ZEKAYA SAHİP 3 AŞAMALI ARAMA MOTORU ---
   Future<void> _handleSearch() async {
     final query = _searchController.text.trim();
     if (query.isEmpty) return;
@@ -301,55 +449,27 @@ class _MapScreenState extends State<MapScreen> {
       _openedPopupPin = null; 
     });
     
-    // Haritanın o anki durumunu al
-    final bounds = _mapController.camera.visibleBounds; // Ekranın sınırları
-    final center = _mapController.camera.center;        // Ekranın merkezi
+    final bounds = _mapController.camera.visibleBounds; 
+    final center = _mapController.camera.center;        
     
-    // 1. AŞAMA (KATI ARAMA): Sadece ekranın içinde gördüğün yerleri ara
-    List<SearchResult> results = await _geocodingService.searchPlace(
-      query, 
-      bounds: bounds 
-    );
-    
-    // 2. AŞAMA (YUMUŞAK ARAMA): Ekranda bulamadıysa, ekrandan dışarı taş ama merkeze yakın olanları getir
-    if (results.isEmpty) {
-      results = await _geocodingService.searchPlace(
-        query, 
-        biasLocation: center
-      );
-    }
-    
-    // 3. AŞAMA (KELİME KÖKÜ): Hala yoksa, belki "Zapata Burger" yerine sadece "Zapata" kayıtlıdır
+    List<SearchResult> results = await _geocodingService.searchPlace(query, bounds: bounds);
+    if (results.isEmpty) results = await _geocodingService.searchPlace(query, biasLocation: center);
     if (results.isEmpty && query.contains(' ')) {
       final firstWord = query.split(' ').first;
-      results = await _geocodingService.searchPlace(
-        firstWord, 
-        biasLocation: center
-      );
+      results = await _geocodingService.searchPlace(firstWord, biasLocation: center);
     }
     
     setState(() => _isSearching = false);
 
     if (results.isNotEmpty) {
       setState(() => _searchResults = results);
-      
-      // Dinamik Zoom Zekası (Sevdiğin özellik korundu)
       if (results.length == 1) {
         _mapController.move(results.first.location, 15.0); 
       } else {
         _mapController.move(results.first.location, 11.5); 
       }
-      
     } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Mekan bulunamadı. Haritaya UZUN BASARAK kendiniz ekleyebilirsiniz!'), 
-            backgroundColor: Colors.orange,
-            duration: Duration(seconds: 4),
-          ),
-        );
-      }
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Mekan bulunamadı. Haritaya UZUN BASARAK kendiniz ekleyebilirsiniz!'), backgroundColor: Colors.orange, duration: Duration(seconds: 4)));
     }
   }
 
@@ -408,7 +528,7 @@ class _MapScreenState extends State<MapScreen> {
         if (_openedPopupPin != null) {
           savedMarkers.add(
             Marker(
-              point: _openedPopupPin!.latLng, width: 250, height: 200, alignment: Alignment.center,
+              point: _openedPopupPin!.latLng, width: 250, height: 350, alignment: Alignment.center, 
               child: Align(alignment: Alignment.bottomCenter, child: Padding(padding: const EdgeInsets.only(bottom: 25.0), child: _buildPinPopup(_openedPopupPin!))),
             ),
           );
