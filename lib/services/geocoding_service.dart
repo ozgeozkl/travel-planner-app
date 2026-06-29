@@ -56,4 +56,35 @@ class GeocodingService {
     }
     return [];
   }
+  // YENİ: Koordinattan adres üreten fonksiyon
+  Future<String?> getAddressFromCoordinates(double lat, double lon) async {
+    try {
+      final url = Uri.parse('https://photon.komoot.io/reverse?lon=$lon&lat=$lat');
+      final response = await http.get(url);
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['features'] != null && data['features'].isNotEmpty) {
+          final properties = data['features'][0]['properties'];
+          
+          // Bulunan en mantıklı konum parçalarını birleştiriyoruz
+          String name = properties['name'] ?? '';
+          String district = properties['district'] ?? properties['city'] ?? '';
+          String state = properties['state'] ?? '';
+          
+          List<String> parts = [];
+          if (name.isNotEmpty) parts.add(name);
+          if (district.isNotEmpty && district != name) parts.add(district);
+          if (state.isNotEmpty && state != district) parts.add(state);
+          
+          if (parts.isNotEmpty) {
+            return parts.join(', '); // Örn: "Caferağa, İstanbul"
+          }
+        }
+      }
+    } catch (e) {
+      return null;
+    }
+    return null;
+  }
 }

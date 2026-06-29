@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:latlong2/latlong.dart';
 
 class PinModel {
-  final String? id;
+  String? id;
   final String userId;
   final String title;
   final String? note;
@@ -10,7 +10,8 @@ class PinModel {
   final double latitude;
   final double longitude;
   final DateTime createdAt;
-  final String? imageUrl; // YENİ: Fotoğraf URL'si
+  final String? imageUrl;
+  final String? address; // YENİ: Adres alanı eklendi
 
   PinModel({
     this.id,
@@ -21,8 +22,11 @@ class PinModel {
     required this.latitude,
     required this.longitude,
     required this.createdAt,
-    this.imageUrl, // YENİ
+    this.imageUrl,
+    this.address,
   });
+
+  LatLng get latLng => LatLng(latitude, longitude);
 
   Map<String, dynamic> toMap() {
     return {
@@ -33,7 +37,8 @@ class PinModel {
       'latitude': latitude,
       'longitude': longitude,
       'createdAt': Timestamp.fromDate(createdAt),
-      'imageUrl': imageUrl, // YENİ
+      'imageUrl': imageUrl,
+      'address': address, // YENİ
     };
   }
 
@@ -44,12 +49,11 @@ class PinModel {
       title: map['title'] ?? '',
       note: map['note'],
       color: map['color'] ?? 0xFFF44336,
-      latitude: (map['latitude'] as num).toDouble(),
-      longitude: (map['longitude'] as num).toDouble(),
+      latitude: map['latitude'] ?? 0.0,
+      longitude: map['longitude'] ?? 0.0,
       createdAt: (map['createdAt'] as Timestamp).toDate(),
-      imageUrl: map['imageUrl'], // YENİ
+      imageUrl: map['imageUrl'],
+      address: map['address'], // YENİ
     );
   }
-
-  LatLng get latLng => LatLng(latitude, longitude);
 }

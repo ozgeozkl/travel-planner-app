@@ -12,6 +12,7 @@ import '../../services/auth_service.dart';
 import '../../services/database_service.dart';
 import '../../services/geocoding_service.dart';
 import '../../models/pin_model.dart';
+import '../profile/profile_screen.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -125,11 +126,9 @@ class _MapScreenState extends State<MapScreen> {
                     ),
                     const SizedBox(height: 16),
                     
-                    // --- WEB VE MOBİL UYUMLU FOTOĞRAF SEÇİCİ ---
                     GestureDetector(
                       onTap: isUploading ? null : () async {
                         final ImagePicker picker = ImagePicker();
-                        // HARİKA KISAYOL: Seçerken sıkıştır! Ekstra pakete gerek kalmadı.
                         final XFile? image = await picker.pickImage(
                           source: ImageSource.gallery,
                           maxWidth: 1080, 
@@ -147,7 +146,6 @@ class _MapScreenState extends State<MapScreen> {
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(color: Colors.grey[400]!, width: 1, style: BorderStyle.solid),
                           image: selectedImage != null 
-                              // WEB ise NetworkImage, Mobil ise FileImage kullanıyoruz
                               ? DecorationImage(
                                   image: kIsWeb 
                                       ? NetworkImage(selectedImage!.path) as ImageProvider
@@ -197,7 +195,7 @@ class _MapScreenState extends State<MapScreen> {
                       const SizedBox(height: 20),
                       const Center(child: CircularProgressIndicator()),
                       const SizedBox(height: 8),
-                      const Center(child: Text('Görsel buluta yükleniyor...\nLütfen bekleyin.', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Colors.blue))),
+                      const Center(child: Text('Veriler işleniyor...\nLütfen bekleyin.', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Colors.blue))),
                     ]
                   ],
                 ),
@@ -212,28 +210,34 @@ class _MapScreenState extends State<MapScreen> {
                   onPressed: isUploading ? null : () async {
                     if (titleController.text.trim().isEmpty) return; 
                     
+                    setStateDialog(() => isUploading = true);
+                    
                     String? finalImageUrl = existingPin?.imageUrl;
+                    String? fetchedAddress = existingPin?.address;
 
-                    // YENİ UYUM: Fotoğrafı Web'de ve Mobilde ortak okuyan yöntem
-                    if (selectedImage != null) {
-                      setStateDialog(() => isUploading = true);
-                      try {
-                        // Dosyayı byte (veri) olarak okuruz, bu sayede hem Web'de hem mobilde çalışır
+                    try {
+                      // 1. FOTOĞRAF YÜKLEME
+                      if (selectedImage != null) {
                         final bytes = await selectedImage!.readAsBytes();
-                        
                         final String fileName = 'pins/${_currentUserId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
                         final Reference ref = FirebaseStorage.instance.ref().child(fileName);
                         
                         final UploadTask uploadTask = ref.putData(bytes, SettableMetadata(contentType: 'image/jpeg'));
                         final TaskSnapshot snapshot = await uploadTask;
                         finalImageUrl = await snapshot.ref.getDownloadURL(); 
-                        
-                      } catch (e) {
-                        developer.log('Storage Yükleme Hatası: $e', name: 'MapScreen');
-                        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Fotoğraf yüklenemedi.'), backgroundColor: Colors.red));
-                      } finally {
-                        if (mounted) setStateDialog(() => isUploading = false);
                       }
+
+                      // 2. YENİ: ARKA PLANDA ADRES BULMA (Tersine Çözümleme)
+                      if (fetchedAddress == null) {
+                         double targetLat = point?.latitude ?? existingPin!.latitude;
+                         double targetLon = point?.longitude ?? existingPin!.longitude;
+                         fetchedAddress = await _geocodingService.getAddressFromCoordinates(targetLat, targetLon);
+                      }
+                      
+                    } catch (e) {
+                      developer.log('Hata: $e', name: 'MapScreen');
+                    } finally {
+                      if (mounted) setStateDialog(() => isUploading = false);
                     }
 
                     if (mounted) {
@@ -242,6 +246,7 @@ class _MapScreenState extends State<MapScreen> {
                         'note': noteController.text.trim(),
                         'color': selectedColor.value,
                         'imageUrl': finalImageUrl, 
+                        'address': fetchedAddress, // YENİ: Adresi dışarı aktarıyoruz
                       });
                     }
                   },
@@ -265,6 +270,7 @@ class _MapScreenState extends State<MapScreen> {
           longitude: point.longitude, 
           createdAt: DateTime.now(),
           imageUrl: result['imageUrl'], 
+          address: result['address'], // YENİ
         );
         try {
           await _databaseService.addPin(newPin);
@@ -284,6 +290,7 @@ class _MapScreenState extends State<MapScreen> {
           longitude: existingPin.longitude, 
           createdAt: existingPin.createdAt,
           imageUrl: result['imageUrl'], 
+          address: result['address'], // YENİ
         );
         try {
           await _databaseService.updatePin(updatedPin);
@@ -378,55 +385,83 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
-  void _showPinListBottomSheet() {
-    setState(() => _openedPopupPin = null); 
+void _showPinListBottomSheet() {
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
       builder: (context) {
         return StreamBuilder<List<PinModel>>(
           stream: _databaseService.getUserPins(),
           builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-            final pins = snapshot.data ?? [];
-            if (pins.isEmpty) return const Center(child: Text('Henüz kaydedilmiş yeriniz yok.'));
-
+            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+            
+            final pins = snapshot.data!;
+            if (pins.isEmpty) {
+              return const Center(
+                child: Padding(padding: EdgeInsets.all(24.0), child: Text('Henüz kaydedilmiş bir yer yok.', style: TextStyle(color: Colors.grey))),
+              );
+            }
+            
             return Column(
               children: [
-                const Padding(padding: EdgeInsets.all(16.0), child: Text('Kaydettiğim Yerler', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold))),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20.0),
+                  child: Text('Kaydettiğim Yerler', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+                ),
+                const Divider(height: 1, color: Colors.black12),
                 Expanded(
                   child: ListView.builder(
                     itemCount: pins.length,
                     itemBuilder: (context, index) {
                       final pin = pins[index];
-                      return Dismissible(
-                        key: Key(pin.id ?? index.toString()),
-                        direction: DismissDirection.endToStart,
-                        background: Container(color: Colors.red, alignment: Alignment.centerRight, padding: const EdgeInsets.symmetric(horizontal: 20), child: const Icon(Icons.delete, color: Colors.white)),
-                        confirmDismiss: (direction) async {
-                          return await showDialog(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              title: const Text('Emin misiniz?'), content: Text('${pin.title} silinecek.'),
-                              actions: [
-                                TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('İptal')),
-                                ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white), onPressed: () => Navigator.pop(context, true), child: const Text('Sil')),
+                      return ListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+                        leading: pin.imageUrl != null && pin.imageUrl!.isNotEmpty
+                            ? CircleAvatar(radius: 24, backgroundImage: NetworkImage(pin.imageUrl!))
+                            : CircleAvatar(
+                                radius: 24,
+                                backgroundColor: Color(pin.color).withOpacity(0.15),
+                                child: Icon(Icons.location_on, color: Color(pin.color), size: 26),
+                              ),
+                        title: Text(pin.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                        subtitle: Padding(
+                          padding: const EdgeInsets.only(top: 4.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (pin.note != null && pin.note!.isNotEmpty) ...[
+                                Text(pin.note!, style: const TextStyle(color: Colors.black87, fontSize: 13)),
+                                const SizedBox(height: 4),
                               ],
-                            ),
-                          );
-                        },
-                        onDismissed: (direction) async {
-                          if (pin.id != null) await _databaseService.deletePin(pin.id!);
-                        },
-                        child: ListTile(
-                          leading: pin.imageUrl != null && pin.imageUrl!.isNotEmpty
-                              ? CircleAvatar(backgroundImage: NetworkImage(pin.imageUrl!), backgroundColor: Color(pin.color))
-                              : CircleAvatar(backgroundColor: Color(pin.color), child: const Icon(Icons.location_on, color: Colors.white)),
-                          title: Text(pin.title, style: const TextStyle(fontWeight: FontWeight.bold)),
-                          subtitle: Text(pin.note ?? 'Haritada görmek için dokunun', maxLines: 1, overflow: TextOverflow.ellipsis),
-                          trailing: IconButton(icon: const Icon(Icons.edit, color: Colors.grey), onPressed: () { Navigator.pop(context); _showPinDialog(existingPin: pin); }),
-                          onTap: () { Navigator.pop(context); _mapController.move(pin.latLng, 15.0); },
+                              Row(
+                                children: [
+                                  const Icon(Icons.place, size: 14, color: Colors.blueGrey),
+                                  const SizedBox(width: 4),
+                                  Expanded(
+                                    child: Text(
+                                      pin.address ?? 'Adres yükleniyor veya bulunamadı...',
+                                      style: const TextStyle(fontSize: 12, color: Colors.blueGrey, fontWeight: FontWeight.w400),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.edit_note, color: Colors.grey, size: 26),
+                          onPressed: () {
+                            Navigator.pop(context);
+                            _showPinDialog(existingPin: pin);
+                          },
+                        ),
+                        onTap: () {
+                          Navigator.pop(context);
+                          _mapController.move(pin.latLng, 16);
+                        },
                       );
                     },
                   ),
@@ -494,7 +529,7 @@ class _MapScreenState extends State<MapScreen> {
             savedMarkers.add(
               Marker(
                 point: result.location, width: 40, height: 40, alignment: Alignment.center,
-                child: GestureDetector(
+               child: GestureDetector(
                   onTap: () => _showPinDialog(point: result.location, suggestedTitle: result.name),
                   child: Container(
                     decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)]),
@@ -538,6 +573,23 @@ class _MapScreenState extends State<MapScreen> {
           appBar: AppBar(
             title: const Text('Seyahat Haritam', style: TextStyle(fontWeight: FontWeight.bold)),
             actions: [
+   // YENİ: Profil Sayfasına Giden Buton
+              IconButton(
+                icon: const Icon(Icons.person, color: Colors.blue),
+                tooltip: 'Profilim',
+                onPressed: () async {
+                  // Profil sayfasına git ve oradan gelecek sonucu bekle
+                  final selectedLocation = await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const ProfileScreen()),
+                  );
+                  
+                  // Eğer bir koordinat geldiyse, haritayı oraya uçur!
+                  if (selectedLocation != null) {
+                    _mapController.move(selectedLocation, 16.0); // 16.0 yakın bir zoom seviyesidir
+                  }
+                },
+              ),
               IconButton(icon: const Icon(Icons.format_list_bulleted, color: Colors.blue), tooltip: 'Kaydedilen Yerler', onPressed: _showPinListBottomSheet),
               IconButton(
                 icon: const Icon(Icons.logout),
