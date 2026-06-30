@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../services/auth_service.dart';
 import '../../services/database_service.dart';
 import '../../models/pin_model.dart';
 import 'gallery_screen.dart';
 import 'saved_list_screen.dart';
 import '../settings/settings_screen.dart';
-import 'package:image_picker/image_picker.dart';
+import '../planner/planner_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -22,9 +24,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   User? get _currentUser => FirebaseAuth.instance.currentUser;
 
   Future<void> _handleChangeProfilePhoto() async {
-    // image_picker paketi gereklidir: flutter pub add image_picker
-    // Aşağıdaki import'u dosyanın başına ekle:
-    // import 'package:image_picker/image_picker.dart';
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(
       source: ImageSource.gallery,
@@ -34,12 +33,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (pickedFile == null) return;
 
     try {
-      // Fotoğrafı Storage'a yükle ve URL'yi Auth profiline kaydet.
-      // Bu kısım DatabaseService veya StorageService'inize göre uyarlanmalıdır.
-      // Örnek:
-      // final url = await _databaseService.uploadProfilePhoto(pickedFile.path);
-      // await FirebaseAuth.instance.currentUser?.updatePhotoURL(url);
+      final bytes = await pickedFile.readAsBytes();
+      final String fileName = 'profiles/${_currentUser!.uid}.jpg';
+      final ref = FirebaseStorage.instance.ref().child(fileName);
+      
+      await ref.putData(bytes, SettableMetadata(contentType: 'image/jpeg'));
+      final String downloadUrl = await ref.getDownloadURL();
+      
+      await _currentUser!.updatePhotoURL(downloadUrl);
+
       await _refreshUserProfile();
+      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -87,7 +91,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               physics: const AlwaysScrollableScrollPhysics(),
               child: Column(
                 children: [
-                  // Profil Başlığı
                   Container(
                     width: double.infinity,
                     color: Colors.white,
@@ -144,7 +147,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                   const SizedBox(height: 20),
 
-                  // İstatistik Kartları
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 15),
                     child: Row(
@@ -191,7 +193,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                   const SizedBox(height: 20),
 
-                  // Menü
                   Container(
                     margin: const EdgeInsets.symmetric(horizontal: 15),
                     decoration: BoxDecoration(
@@ -199,9 +200,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         borderRadius: BorderRadius.circular(15)),
                     child: Column(
                       children: [
-                        _buildMenuTile(
-                            Icons.calendar_month, 'Seyahat Planlama', () {},
-                            iconColor: Colors.orange),
+                       _buildMenuTile(Icons.calendar_month, 'Seyahat Planlama', () async {
+                          // YENİ: Planlama ekranından dönen pini yakalar
+                          final resultPin = await Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const PlannerScreen()),
+                          );
+                          
+                          // Pini alıp nihai hedefe (Ana Haritaya) fırlatır
+                          if (resultPin != null && context.mounted) {
+                            Navigator.pop(context, resultPin);
+                          }
+                        }, iconColor: Colors.orange), // Rengi kendi temana göre değiştirebilirsin
+                        _buildMenuTile(Icons.history, 'Geçmiş Seyahatlerim', () {
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Arşiv yakında aktif olacak!')));
+                        }, iconColor: Colors.purple),
                         const Divider(height: 1),
                         _buildMenuTile(Icons.settings, 'Ayarlar', () {
                           Navigator.push(

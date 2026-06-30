@@ -577,18 +577,29 @@ void _showPinListBottomSheet() {
               IconButton(
                 icon: const Icon(Icons.person, color: Colors.blue),
                 tooltip: 'Profilim',
-                onPressed: () async {
-                  // Profil sayfasına git ve oradan gelecek sonucu bekle
-                  final selectedLocation = await Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const ProfileScreen()),
-                  );
-                  
-                  // Eğer bir koordinat geldiyse, haritayı oraya uçur!
-                  if (selectedLocation != null) {
-                    _mapController.move(selectedLocation, 16.0); // 16.0 yakın bir zoom seviyesidir
-                  }
-                },
+              onPressed: () async {
+  // 1. Profil sayfasına git ve oradan gelecek sonucu bekle
+  // NOT: 'dynamic' kelimesini ekledik ki her türlü veriyi (PinModel veya LatLng) kabul etsin
+  final dynamic selectedLocation = await Navigator.push(
+    context,
+    MaterialPageRoute(builder: (context) => const ProfileScreen()),
+  );
+
+  // 2. Eğer geriye bir veri geldiyse, haritayı oraya uçur!
+  if (selectedLocation != null) {
+    try {
+      // Önce Kaydedilenler ekranından gelen saf bir koordinat (LatLng) mi diye dener
+      _mapController.move(selectedLocation as LatLng, 16.0);
+    } catch (e) {
+      // Eğer üstteki kod hata verirse, demek ki Günlük Plan'dan bir PinModel gelmiştir!
+      // PinModel'in içindeki koordinatları alıp kendimiz bir LatLng oluşturuyoruz.
+      _mapController.move(
+        LatLng(selectedLocation.latitude, selectedLocation.longitude), 
+        16.0
+      );
+    }
+  }
+}
               ),
               IconButton(icon: const Icon(Icons.format_list_bulleted, color: Colors.blue), tooltip: 'Kaydedilen Yerler', onPressed: _showPinListBottomSheet),
               IconButton(

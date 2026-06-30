@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:developer' as developer;
 import '../models/pin_model.dart';
+import '../models/trip_model.dart';
+
 
 class DatabaseService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -71,5 +73,29 @@ class DatabaseService {
       developer.log('Pin silinirken hata: $e', name: 'DatabaseService');
       throw Exception('Yer silinemedi.');
     }
+  }
+  Future<void> addTrip(TripModel trip) async {
+    await _db.collection('trips').add(trip.toMap());
+  }
+
+Stream<List<TripModel>> getUserTrips() {
+    return _db
+        .collection('trips')
+        // BURASI DÜZELTİLDİ: _auth yerine FirebaseAuth.instance kullanıyoruz
+        .where('userId', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => TripModel.fromMap(doc.data(), doc.id))
+            .toList());
+  }
+
+  Future<void> updateTrip(TripModel trip) async {
+    if (trip.id != null) {
+      await _db.collection('trips').doc(trip.id).update(trip.toMap());
+    }
+  }
+
+  Future<void> deleteTrip(String tripId) async {
+    await _db.collection('trips').doc(tripId).delete();
   }
 }
