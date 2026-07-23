@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 import 'register_screen.dart'; 
 import '../map/map_screen.dart';
+import 'package:travel_planner/l10n/app_localizations.dart';
+import 'package:travel_planner/main.dart'; // Dil değiştirmek için TravelPlannerApp'i import ettik
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -21,8 +23,8 @@ class _LoginScreenState extends State<LoginScreen> {
     // 1. Boş alan kontrolü
     if (_emailController.text.trim().isEmpty || _passwordController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Lütfen e-posta ve şifrenizi girin.'),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.emptyFieldsError),
           backgroundColor: Colors.orange,
         ),
       );
@@ -34,6 +36,7 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       // 2. Giriş isteği
       final user = await _authService.signInWithEmail(
+        context,
         _emailController.text.trim(),
         _passwordController.text.trim(),
       );
@@ -42,29 +45,26 @@ class _LoginScreenState extends State<LoginScreen> {
       if (user != null && !user.emailVerified) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Lütfen e-posta adresinize gelen linke tıklayarak hesabınızı doğrulayın.'),
+            SnackBar(
+              content: Text(AppLocalizations.of(context)!.emailVerifyError),
               backgroundColor: Colors.orange,
-              duration: Duration(seconds: 4),
+              duration: const Duration(seconds: 4),
             ),
           );
         }
-        // Kullanıcı doğrulamadığı için oturumunu hemen geri kapatıyoruz
-        await _authService.signOut();
+        await _authService.signOut(context);
         return; 
       }
 
       // 4. Başarılı giriş
-     // 4. Başarılı giriş
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Giriş başarılı! Haritaya yönlendiriliyorsunuz...'),
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.loginSuccess),
             backgroundColor: Colors.green,
           ),
         );
         
-        // TODO satırını silip yönlendirmeyi ekledik:
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const MapScreen()),
@@ -95,145 +95,175 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Logo
-                const Icon(
-                  Icons.map_outlined,
-                  size: 100,
-                  color: Colors.blue,
-                ),
-                const SizedBox(height: 32),
-                
-                // Başlıklar
-                Text(
-                  'Travel Planner',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Seyahatlerini planlamaya başlamak için giriş yap',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey[600],
-                  ),
-                ),
-                const SizedBox(height: 48),
-
-                // E-posta Alanı
-                TextField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
-                    labelText: 'E-posta',
-                    prefixIcon: Icon(Icons.email_outlined),
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // Şifre Alanı
-                TextField(
-                  controller: _passwordController,
-                  obscureText: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Şifre',
-                    prefixIcon: Icon(Icons.lock_outline),
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                
-                // Şifremi Unuttum Butonu
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () async {
-                      if (_emailController.text.trim().isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Lütfen önce e-posta adresinizi yukarıya yazın.'),
-                            backgroundColor: Colors.orange,
-                          ),
-                        );
-                        return;
-                      }
-                      
-                      try {
-                        await _authService.sendPasswordResetEmail(_emailController.text.trim());
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Şifre sıfırlama linki e-postanıza gönderildi.'),
-                              backgroundColor: Colors.blue,
-                            ),
-                          );
-                        }
-                      } catch (e) {
-                        if (mounted) {
-                          final cleanMessage = e.toString().replaceAll('Exception: ', '');
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(cleanMessage),
-                              backgroundColor: Colors.redAccent,
-                            ),
-                          );
-                        }
-                      }
-                    },
-                    child: const Text('Şifremi Unuttum'),
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // Giriş Yap Butonu
-                SizedBox(
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _handleLogin,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
-                      foregroundColor: Colors.white,
+        child: Stack(
+          children: [
+            // Ana form içeriğimiz ortalanmış şekilde kalmaya devam ediyor
+            Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Logo
+                    const Icon(
+                      Icons.map_outlined,
+                      size: 100,
+                      color: Colors.blue,
                     ),
-                    child: _isLoading
-                        ? const SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            ),
-                          )
-                        : const Text(
-                            'Giriş Yap',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                          ),
-                  ),
-                ),
-                const SizedBox(height: 16),
+                    const SizedBox(height: 32),
+                    
+                    // Başlıklar
+                    Text(
+                      'Travel Planner', // Proje adı olduğu için sabit bırakıldı
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      l10n.loginSubtitle,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    const SizedBox(height: 48),
 
-                // Kayıt Ol Yönlendirmesi
-                TextButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const RegisterScreen()),
-                    );
-                  },
-                  child: const Text('Hesabın yok mu? Hemen kayıt ol.'),
+                    // E-posta Alanı
+                    TextField(
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: InputDecoration(
+                        labelText: l10n.emailLabel, // Dinamik metin
+                        prefixIcon: const Icon(Icons.email_outlined),
+                        border: const OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Şifre Alanı
+                    TextField(
+                      controller: _passwordController,
+                      obscureText: true,
+                      decoration: InputDecoration(
+                        labelText: l10n.passwordLabel, // Dinamik metin
+                        prefixIcon: const Icon(Icons.lock_outline),
+                        border: const OutlineInputBorder(),
+                      ),
+                    ),
+                    
+                    // Şifremi Unuttum Butonu
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: () async {
+                          if (_emailController.text.trim().isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(l10n.emailRequiredForReset),
+                                backgroundColor: Colors.orange,
+                              ),
+                            );
+                            return;
+                          }
+                          
+                          try {
+                            await _authService.sendPasswordResetEmail(context, _emailController.text.trim());
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(l10n.passwordResetSent),
+                                  backgroundColor: Colors.blue,
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              final cleanMessage = e.toString().replaceAll('Exception: ', '');
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(cleanMessage),
+                                  backgroundColor: Colors.redAccent,
+                                ),
+                              );
+                            }
+                          }
+                        },
+                        child: Text(l10n.forgotPassword), // Dinamik metin
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Giriş Yap Butonu
+                    SizedBox(
+                      height: 50,
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : _handleLogin,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          foregroundColor: Colors.white,
+                        ),
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Text(
+                                l10n.loginButton, // Dinamik metin
+                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                              ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Kayıt Ol Yönlendirmesi
+                    TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const RegisterScreen()),
+                        );
+                      },
+                      child: Text(l10n.noAccountRegister), // Dinamik metin
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
-          ),
+
+            // SAĞ ÜST KÖŞE - DİL SEÇİMİ BUTONU
+            Positioned(
+              top: 16,
+              right: 16,
+              child: PopupMenuButton<String>(
+                icon: const Icon(Icons.language, color: Colors.grey, size: 28),
+                tooltip: 'Dil Seç / Language',
+                onSelected: (String languageCode) {
+                  TravelPlannerApp.setLocale(context, Locale(languageCode));
+                },
+                itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                  const PopupMenuItem<String>(
+                    value: 'tr',
+                    child: Text('🇹🇷 Türkçe'),
+                  ),
+                  const PopupMenuItem<String>(
+                    value: 'en',
+                    child: Text('🇬🇧 English'),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
+import 'package:travel_planner/l10n/app_localizations.dart';
+import 'package:travel_planner/main.dart'; // Dil değiştirmek için TravelPlannerApp'i import ettik
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -18,8 +20,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     // 1. Boş alan kontrolü
     if (_emailController.text.trim().isEmpty || _passwordController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Lütfen e-posta ve şifre alanlarını doldurun.'),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.registerEmptyFieldsError),
           backgroundColor: Colors.orange,
         ),
       );
@@ -31,19 +33,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
     try {
       // 2. Firebase Auth ile kullanıcıyı kaydet
       await _authService.signUpWithEmail(
+        context,
         _emailController.text.trim(),
         _passwordController.text.trim(),
       );
       
       // 3. Gerçek e-posta doğrulama linkini gönder
-      await _authService.sendEmailVerification();
+      await _authService.sendEmailVerification(context);
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Kayıt başarılı! Lütfen e-posta adresinize gelen doğrulama linkine tıklayın.'),
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.registerSuccessMsg),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 5),
+            duration: const Duration(seconds: 5),
           ),
         );
         // Kayıt işleminden sonra giriş ekranına geri dön
@@ -74,9 +77,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // L10n değişkenini tanımlıyoruz
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Yeni Hesap Oluştur'),
+        title: Text(l10n.registerAppBarTitle),
+        // SAĞ ÜST KÖŞE - DİL SEÇİMİ BUTONU (AppBar Actions içine eklendi)
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.language),
+            tooltip: 'Dil Seç / Language',
+            onSelected: (String languageCode) {
+              TravelPlannerApp.setLocale(context, Locale(languageCode));
+            },
+            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+              const PopupMenuItem<String>(
+                value: 'tr',
+                child: Text('🇹🇷 Türkçe'),
+              ),
+              const PopupMenuItem<String>(
+                value: 'en',
+                child: Text('🇬🇧 English'),
+              ),
+            ],
+          ),
+        ],
       ),
       body: SafeArea(
         child: Center(
@@ -96,7 +122,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 
                 // Açıklama
                 Text(
-                  'Aramıza Katıl',
+                  l10n.registerTitle,
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                     fontWeight: FontWeight.bold,
@@ -104,7 +130,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Seyahat haritanı oluşturmak için ücretsiz hesap aç',
+                  l10n.registerSubtitle,
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Colors.grey[600],
@@ -116,10 +142,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 TextField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
-                    labelText: 'E-posta Adresi',
-                    prefixIcon: Icon(Icons.email_outlined),
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: l10n.registerEmailLabel,
+                    prefixIcon: const Icon(Icons.email_outlined),
+                    border: const OutlineInputBorder(),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -128,10 +154,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 TextField(
                   controller: _passwordController,
                   obscureText: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Şifre (En az 6 karakter)',
-                    prefixIcon: Icon(Icons.lock_outline),
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: l10n.registerPasswordLabel,
+                    prefixIcon: const Icon(Icons.lock_outline),
+                    border: const OutlineInputBorder(),
                   ),
                 ),
                 const SizedBox(height: 32),
@@ -154,9 +180,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               strokeWidth: 2,
                             ),
                           )
-                        : const Text(
-                            'Kayıt Ol ve Onay Kodu Gönder',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        : Text(
+                            l10n.registerButton,
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                           ),
                   ),
                 ),

@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import '../../services/database_service.dart';
 import '../../models/trip_model.dart';
+import '../../services/database_service.dart';
 import 'trip_detail_screen.dart';
-
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:travel_planner/l10n/app_localizations.dart';
 
 class PlannerScreen extends StatefulWidget {
-  const PlannerScreen({super.key});
+  final int initialTabIndex; 
+
+  const PlannerScreen({super.key, this.initialTabIndex = 0});
 
   @override
   State<PlannerScreen> createState() => _PlannerScreenState();
@@ -16,264 +17,389 @@ class PlannerScreen extends StatefulWidget {
 
 class _PlannerScreenState extends State<PlannerScreen> {
   final DatabaseService _databaseService = DatabaseService();
-  final String _currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
-  
-  CalendarFormat _calendarFormat = CalendarFormat.month;
-  DateTime _focusedDay = DateTime.now();
-  DateTime? _selectedDay;
 
-  @override
-  void initState() {
-    super.initState();
-    _selectedDay = _focusedDay;
-  }
+  void _showCreateTripDialog() {
+    final titleController = TextEditingController();
+    DateTime? startDate;
+    DateTime? endDate;
 
-  Future<void> _showAddTripDialog() async {
-    final TextEditingController titleController = TextEditingController();
-    DateTimeRange? selectedDateRange;
-
-    await showDialog(
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (context) {
         return StatefulBuilder(
-          builder: (context, setStateDialog) {
-            return AlertDialog(
-              title: const Text('Yeni Seyahat Klasörü'),
-              content: Column(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+                top: 16,
+                left: 16,
+                right: 16,
+              ),
+              child: Column(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Text(
+                    AppLocalizations.of(context)!.plannerCreateTripTitle,
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 12),
                   TextField(
                     controller: titleController,
-                    decoration: const InputDecoration(
-                      labelText: 'Seyahat Adı (Örn: Roma Turu)',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: AppLocalizations.of(context)!.plannerTripTitleLabel,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
                   ListTile(
+                    tileColor: Colors.grey.shade100,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      side: BorderSide(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     leading: const Icon(Icons.date_range, color: Colors.deepOrange),
                     title: Text(
-                      selectedDateRange == null
-                          ? 'Tarih Aralığı Seç'
-                          : '${DateFormat('dd MMM').format(selectedDateRange!.start)} - ${DateFormat('dd MMM yyyy').format(selectedDateRange!.end)}',
+                      startDate == null || endDate == null
+                          ? AppLocalizations.of(context)!.plannerSelectDateRange
+                          : '${DateFormat('dd MMM').format(startDate!)} - ${DateFormat('dd MMM yyyy').format(endDate!)}',
                     ),
                     onTap: () async {
-                      final picked = await showDateRangePicker(
+                      final DateTimeRange? picked = await showDateRangePicker(
                         context: context,
                         firstDate: DateTime.now().subtract(const Duration(days: 365)),
-                        lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
-                        builder: (context, child) {
-                          return Theme(
-                            data: Theme.of(context).copyWith(
-                              colorScheme: const ColorScheme.light(
-                                primary: Colors.deepOrange,
-                                onPrimary: Colors.white,
-                                onSurface: Colors.black,
-                              ),
-                            ),
-                            child: child!,
-                          );
-                        },
+                        lastDate: DateTime.now().add(const Duration(days: 1825)),
                       );
                       if (picked != null) {
-                        setStateDialog(() => selectedDateRange = picked);
+                        setModalState(() {
+                          startDate = picked.start;
+                          endDate = picked.end;
+                        });
                       }
                     },
                   ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.deepOrange,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () async {
+                        if (titleController.text.trim().isEmpty ||
+                            startDate == null ||
+                            endDate == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(AppLocalizations.of(context)!.plannerFillAllFieldsError),
+                            ),
+                          );
+                          return;
+                        }
+                        final user = FirebaseAuth.instance.currentUser;
+
+                        if (user != null) {
+                          final newTrip = TripModel(
+                            userId: user.uid,
+                            title: titleController.text.trim(),
+                            startDate: startDate!,
+                            endDate: endDate!,
+                          );
+                          await _databaseService.addTrip(newTrip);
+                          if (context.mounted) {
+                            Navigator.pop(context);
+                          }
+                        }
+                      },
+                      child: Text(
+                        AppLocalizations.of(context)!.plannerCreateButton,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
                 ],
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('İptal', style: TextStyle(color: Colors.grey)),
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.deepOrange, foregroundColor: Colors.white),
-                  onPressed: () async {
-                    if (titleController.text.trim().isEmpty || selectedDateRange == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Lütfen isim ve tarih seçin.')),
-                      );
-                      return;
-                    }
-                    
-                    final newTrip = TripModel(
-                      userId: _currentUserId,
-                      title: titleController.text.trim(),
-                      startDate: selectedDateRange!.start,
-                      endDate: selectedDateRange!.end,
-                    );
-                    
-                    Navigator.pop(context);
-                    await _databaseService.addTrip(newTrip);
-                  },
-                  child: const Text('Oluştur'),
-                ),
-              ],
             );
-          }
+          },
         );
       },
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[100],
-      appBar: AppBar(
-        title: const Text('Seyahat Planlarım', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 0,
-      ),
-      body: Column(
-        children: [
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.only(bottom: 10),
-            child: TableCalendar(
-              firstDay: DateTime.utc(2020, 10, 16),
-              lastDay: DateTime.utc(2030, 3, 14),
-              focusedDay: _focusedDay,
-              calendarFormat: _calendarFormat,
-              selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-              onDaySelected: (selectedDay, focusedDay) {
-                setState(() {
-                  _selectedDay = selectedDay;
-                  _focusedDay = focusedDay;
-                });
-              },
-              onFormatChanged: (format) {
-                setState(() {
-                  _calendarFormat = format;
-                });
-              },
-              headerStyle: const HeaderStyle(
-                formatButtonVisible: false,
-                titleCentered: true,
-                titleTextStyle: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.deepOrange),
-                leftChevronIcon: Icon(Icons.chevron_left, color: Colors.deepOrange),
-                rightChevronIcon: Icon(Icons.chevron_right, color: Colors.deepOrange),
-              ),
-              calendarStyle: const CalendarStyle(
-                todayDecoration: BoxDecoration(color: Colors.orangeAccent, shape: BoxShape.circle),
-                selectedDecoration: BoxDecoration(color: Colors.deepOrange, shape: BoxShape.circle),
-                weekendTextStyle: TextStyle(color: Colors.redAccent),
-              ),
-            ),
+  void _toggleTripArchive(TripModel trip) async {
+    final updatedTrip = TripModel(
+      id: trip.id,
+      userId: trip.userId,
+      title: trip.title,
+      startDate: trip.startDate,
+      endDate: trip.endDate,
+      notes: trip.notes,
+      selectedPinIds: trip.selectedPinIds,
+      itinerary: trip.itinerary,
+      themeColor: trip.themeColor,
+      lockedPins: trip.lockedPins,
+      isArchived: !trip.isArchived, 
+    );
+    await _databaseService.updateTrip(updatedTrip);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            updatedTrip.isArchived
+                ? AppLocalizations.of(context)!.plannerTripArchived
+                : AppLocalizations.of(context)!.plannerTripUnarchived,
           ),
-          
-          const SizedBox(height: 15),
-          
-          Expanded(
-            child: StreamBuilder<List<TripModel>>(
-              stream: _databaseService.getUserTrips(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator(color: Colors.deepOrange));
-                }
-                
-                final trips = snapshot.data ?? [];
-                
-                if (trips.isEmpty) {
-                  return const Center(
-                    child: Text('Henüz planlanmış bir seyahat yok.', style: TextStyle(color: Colors.grey, fontSize: 16)),
-                  );
-                }
-                
-                return ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: trips.length,
-                  itemBuilder: (context, index) {
-                    final trip = trips[index];
-                    final duration = trip.endDate.difference(trip.startDate).inDays + 1;
-                    
-                    return Card(
-                      elevation: 2,
-                      margin: const EdgeInsets.only(bottom: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(15),
-                        onTap: () async {
-                          // YENİ: Detay sayfasından dönen pini "resultPin" olarak yakalar
-                          final resultPin = await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => TripDetailScreen(trip: trip),
-                            ),
-                          );
-                          
-                          // Eğer bir pin seçildiyse, onu alıp bir önceki sayfaya fırlatır
-                          if (resultPin != null && context.mounted) {
-                            Navigator.pop(context, resultPin);
-                          }
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Colors.deepOrange.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Icon(Icons.folder_special, color: Colors.deepOrange, size: 32),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      trip.title,
-                                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Row(
-                                      children: [
-                                        const Icon(Icons.calendar_today, size: 14, color: Colors.grey),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          '${DateFormat('dd MMM').format(trip.startDate)} - ${DateFormat('dd MMM').format(trip.endDate)}',
-                                          style: const TextStyle(color: Colors.grey, fontSize: 13),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: Colors.grey.shade100,
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Text('$duration Gün', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey)),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                );
-              },
-            ),
+        ),
+      );
+    }
+  }
+
+  void _deleteTrip(TripModel trip) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(AppLocalizations.of(context)!.plannerDeleteTripTitle),
+        content: Text(AppLocalizations.of(context)!.plannerDeleteTripConfirm(trip.title)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(AppLocalizations.of(context)!.cancelButton),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(AppLocalizations.of(context)!.deleteButton),
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showAddTripDialog,
-        backgroundColor: Colors.deepOrange,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('Yeni Plan', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+    );
+
+    if (confirm == true && trip.id != null) {
+      await _databaseService.deleteTrip(trip.id!);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DefaultTabController(
+      length: 2,
+      initialIndex: widget.initialTabIndex,       
+      child: Scaffold(
+        backgroundColor: Colors.grey[100],
+        appBar: AppBar(
+          title: Text(
+            AppLocalizations.of(context)!.plannerAppBarTitle,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black,
+          elevation: 0,
+          bottom: TabBar(
+            labelColor: Colors.deepOrange,
+            unselectedLabelColor: Colors.grey,
+            indicatorColor: Colors.deepOrange,
+            tabs: [
+              Tab(icon: const Icon(Icons.flight_takeoff), text: AppLocalizations.of(context)!.plannerTabActive),
+              Tab(icon: const Icon(Icons.history), text: AppLocalizations.of(context)!.plannerTabPast),
+            ],
+          ),
+        ),
+        body: StreamBuilder<List<TripModel>>(
+          stream: _databaseService.getUserTrips(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            final allTrips = snapshot.data ?? [];
+
+            final activeTrips = allTrips.where((t) => !t.isPast).toList();
+            final pastTrips = allTrips.where((t) => t.isPast).toList();
+
+            return TabBarView(
+              children: [
+                _buildTripList(activeTrips, isPastList: false),
+                _buildTripList(pastTrips, isPastList: true),
+              ],
+            );
+          },
+        ),
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: _showCreateTripDialog,
+          backgroundColor: Colors.deepOrange,
+          foregroundColor: Colors.white,
+          icon: const Icon(Icons.add),
+          label: Text(AppLocalizations.of(context)!.plannerNewTripFab),
+        ),
       ),
+    );
+  }
+
+  Widget _buildTripList(List<TripModel> trips, {required bool isPastList}) {
+    if (trips.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              isPastList ? Icons.history_toggle_off : Icons.card_travel,
+              size: 64,
+              color: Colors.grey.shade400,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              isPastList
+                  ? AppLocalizations.of(context)!.plannerNoPastTrips
+                  : AppLocalizations.of(context)!.plannerNoActiveTrips,
+              style: const TextStyle(color: Colors.grey, fontSize: 16),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: trips.length,
+      itemBuilder: (context, index) {
+        final trip = trips[index];
+        final themeColor = Color(trip.themeColor);
+
+        return Card(
+          elevation: 2,
+          margin: const EdgeInsets.only(bottom: 12),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () async {
+              final resultPin = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => TripDetailScreen(trip: trip),
+                ),
+              );
+
+              if (resultPin != null && context.mounted) {
+                Navigator.pop(context, resultPin);
+              }
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 8,
+                            backgroundColor: themeColor,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            trip.title,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      PopupMenuButton<String>(
+                        icon: const Icon(Icons.more_vert, color: Colors.grey),
+                        onSelected: (val) {
+                          if (val == 'archive') {
+                            _toggleTripArchive(trip);
+                          } else if (val == 'delete') {
+                            _deleteTrip(trip);
+                          }
+                        },
+                        itemBuilder: (context) => [
+                          PopupMenuItem(
+                            value: 'archive',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  trip.isArchived ? Icons.unarchive : Icons.archive,
+                                  size: 20,
+                                  color: Colors.grey.shade700,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(trip.isArchived 
+                                  ? AppLocalizations.of(context)!.plannerMoveToActive 
+                                  : AppLocalizations.of(context)!.plannerMoveToArchive),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem(
+                            value: 'delete',
+                            child: Row(
+                              children: [
+                                const Icon(Icons.delete, size: 20, color: Colors.red),
+                                const SizedBox(width: 8),
+                                Text(AppLocalizations.of(context)!.deleteButton, style: const TextStyle(color: Colors.red)),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(Icons.calendar_today, size: 14, color: Colors.grey),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${DateFormat('dd MMM yyyy').format(trip.startDate)} - ${DateFormat('dd MMM yyyy').format(trip.endDate)}',
+                        style: const TextStyle(color: Colors.grey, fontSize: 13),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Chip(
+                        avatar: const Icon(Icons.place, size: 16, color: Colors.white),
+                        label: Text(
+                          AppLocalizations.of(context)!.plannerPlaceCount(trip.selectedPinIds.length),
+                          style: const TextStyle(color: Colors.white, fontSize: 12),
+                        ),
+                        backgroundColor: themeColor,
+                        padding: EdgeInsets.zero,
+                      ),
+                      if (trip.isPast) ...[
+                        const SizedBox(width: 8),
+                        Chip(
+                          avatar: const Icon(Icons.check_circle, size: 16, color: Colors.grey),
+                          label: Text(
+                            AppLocalizations.of(context)!.plannerCompleted,
+                            style: const TextStyle(color: Colors.black87, fontSize: 12),
+                          ),
+                          backgroundColor: Colors.grey.shade200,
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

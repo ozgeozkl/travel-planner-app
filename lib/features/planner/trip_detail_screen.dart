@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import '../../models/trip_model.dart';
 import '../../models/pin_model.dart';
 import '../../services/database_service.dart';
+import 'package:travel_planner/l10n/app_localizations.dart';
 
 class TripDetailScreen extends StatefulWidget {
   final TripModel trip;
@@ -18,7 +19,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
   late TextEditingController _notesController;
   late List<String> _selectedPinIds;
   late Map<String, dynamic> _itinerary;
-  late Map<String, dynamic> _lockedPins; // Sabitlenmiş pinler haritası
+  late Map<String, dynamic> _lockedPins;
   late int _themeColor;
   int _activeDayIndex = 1;
 
@@ -61,6 +62,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
       itinerary: _itinerary,
       themeColor: _themeColor,
       lockedPins: _lockedPins,
+      isArchived: widget.trip.isArchived,
     );
     _databaseService.updateTrip(updatedTrip);
   }
@@ -76,7 +78,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Gezi Temasını Seç', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              Text(AppLocalizations.of(context)!.tripThemeSelectTitle, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 15),
               Expanded(
                 child: ListView.builder(
@@ -117,7 +119,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
     setState(() {
       if (_selectedPinIds.contains(pinId)) {
         _selectedPinIds.remove(pinId);
-        _lockedPins.remove(pinId); // Havuzdan çıkarsa kilidi de kalksın
+        _lockedPins.remove(pinId);
         _itinerary.forEach((day, pinList) {
           if (pinList is List) pinList.remove(pinId);
         });
@@ -128,13 +130,12 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
     _updateFirebase();
   }
 
-  // YENİ: Pini o güne sabitleme/kilitleme fonksiyonu
   void _togglePinLock(String pinId) {
     setState(() {
       if (_lockedPins.containsKey(pinId)) {
-        _lockedPins.remove(pinId); // Kilitliyse kilidi aç
+        _lockedPins.remove(pinId);
       } else {
-        _lockedPins[pinId] = _activeDayIndex.toString(); // Değilse aktif güne sabitle
+        _lockedPins[pinId] = _activeDayIndex.toString();
       }
     });
     _updateFirebase();
@@ -156,7 +157,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
   void _removePinFromDay(String pinId, int dayNumber) {
     setState(() {
       final String dayKey = dayNumber.toString();
-      _lockedPins.remove(pinId); // Günden silinirse kilidi de silinsin
+      _lockedPins.remove(pinId);
       if (_itinerary[dayKey] != null) {
         List<String> dayPins = List<String>.from(_itinerary[dayKey]);
         dayPins.remove(pinId);
@@ -180,7 +181,6 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
 
   void _moveSinglePinToAnotherDay(String pinId, int fromDay, int toDay) {
     setState(() {
-      // Başka güne taşınırsa eski kilit geçersiz olur, yeni güne güncellenir (eğer kilitliyse)
       if (_lockedPins.containsKey(pinId)) {
         _lockedPins[pinId] = toDay.toString();
       }
@@ -197,8 +197,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
         toPins.add(pinId);
         _itinerary[toKey] = toPins;
       }
-    });
-    _updateFirebase();
+    });   _updateFirebase();
   }
 
   void _showBulkMoveDialog(int totalDays) {
@@ -207,25 +206,25 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text('$_activeDayIndex. Günü Toplu Taşı'),
+          title: Text(AppLocalizations.of(context)!.tripBulkMoveDayTitle(_activeDayIndex)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Bu gündeki tüm mekanları hangi güne aktarmak istiyorsunuz?'),
+              Text(AppLocalizations.of(context)!.tripBulkMoveDayContent),
               const SizedBox(height: 15),
               DropdownButtonFormField<int>(
                 value: targetDay,
-                decoration: const InputDecoration(border: OutlineInputBorder(), labelText: 'Hedef Gün'),
+                decoration: InputDecoration(border: const OutlineInputBorder(), labelText: AppLocalizations.of(context)!.tripBulkMoveTargetDayLabel),
                 items: List.generate(totalDays, (index) => index + 1)
                     .where((d) => d != _activeDayIndex)
-                    .map((d) => DropdownMenuItem(value: d, child: Text('$d. Gün'))).toList(),
+                    .map((d) => DropdownMenuItem(value: d, child: Text(AppLocalizations.of(context)!.tripDayNumber(d)))).toList(),
                 onChanged: (val) { if (val != null) targetDay = val; },
               ),
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('İptal')),
+            TextButton(onPressed: () => Navigator.pop(context), child: Text(AppLocalizations.of(context)!.cancelButton)),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: Color(_themeColor), foregroundColor: Colors.white),
               onPressed: () {
@@ -246,7 +245,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                 });
                 _updateFirebase();
               },
-              child: const Text('Hepsini Taşı'),
+              child: Text(AppLocalizations.of(context)!.tripBulkMoveMoveAllButton),
             ),
           ],
         );
@@ -254,7 +253,6 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
     );
   }
 
-  // YENİLENDİ: Sabitleme (Kısıtlama) Destekli Akıllı Dağıt Algoritması
   void _optimizeAllDaysRoute(List<PinModel> allPins, int totalDays) {
     final List<PinModel> poolPins = allPins.where((p) => _selectedPinIds.contains(p.id ?? p.title)).toList();
     if (poolPins.isEmpty) return;
@@ -264,14 +262,12 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
       newItinerary[i.toString()] = [];
     }
 
-    // 1. AŞAMA: Önce kilitli pinleri ait oldukları günlere yerleştir ve sabit tut
     _lockedPins.forEach((pinId, dayStr) {
       if (_selectedPinIds.contains(pinId) && int.parse(dayStr) <= totalDays) {
         newItinerary[dayStr.toString()]!.add(pinId);
       }
     });
 
-    // 2. AŞAMA: Havuzdaki pinlerden "Kilitli Olmayanları" serbest dağıtılacaklar listesine al
     List<PinModel> unassigned = poolPins.where((p) {
       final id = p.id ?? p.title;
       return !_lockedPins.containsKey(id);
@@ -281,15 +277,12 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
     int maxPinsPerDay = (poolPins.length / totalDays).ceil();
 
     while (unassigned.isNotEmpty) {
-      // Eğer o gün tamamen boşsa (kilitli pini de yoksa), serbest olan ilk pini o güne çapa (seed) yap
       if (newItinerary[currentDay.toString()]!.isEmpty) {
         PinModel seed = unassigned.removeAt(0);
         newItinerary[currentDay.toString()]!.add(seed.id ?? seed.title);
       }
-
       if (unassigned.isEmpty) break;
 
-      // Günün son eklenen mekanını referans alarak en yakın pini bul
       String lastPinId = newItinerary[currentDay.toString()]!.last;
       PinModel lastPin = poolPins.firstWhere((p) => (p.id ?? p.title) == lastPinId);
 
@@ -309,11 +302,9 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
         newItinerary[currentDay.toString()]!.add(nextPin.id ?? nextPin.title);
       }
 
-      // Gün dolduysa ve henüz son günde değilsek sonraki güne geç
       if (newItinerary[currentDay.toString()]!.length >= maxPinsPerDay && currentDay < totalDays) {
         currentDay++;
       } else if (currentDay == totalDays && unassigned.isNotEmpty) {
-        // Son gündeysek kalan her şeyi son güne ekle
         for (var p in unassigned) {
           newItinerary[currentDay.toString()]!.add(p.id ?? p.title);
         }
@@ -323,7 +314,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
 
     setState(() { _itinerary = newItinerary; });
     _updateFirebase();
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: const Text('🔒 Sabitlenen yerler korunarak akıllı dağıtım yapıldı!'), backgroundColor: Color(_themeColor)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.tripSmartDistributionSuccess), backgroundColor: Color(_themeColor)));
   }
 
   double _calculateDistance(double lat1, double lon1, double lat2, double lon2) {
@@ -334,7 +325,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
 
   void _saveNotes() {
     _updateFirebase();
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Notlar kaydedildi!'), backgroundColor: Colors.green));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.tripNotesSavedSuccess), backgroundColor: Colors.green));
   }
 
   void _showAddPinToDayBottomSheet(List<PinModel> allUserPins) {
@@ -354,10 +345,10 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('$_activeDayIndex. Gün İçin Mekan Seç', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              Text(AppLocalizations.of(context)!.tripSelectPlaceForDay(_activeDayIndex), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 10),
               poolPins.isEmpty
-                  ? const Expanded(child: Center(child: Text('Tüm mekanlar atandı veya havuz boş.', style: TextStyle(color: Colors.grey))))
+                  ? Expanded(child: Center(child: Text(AppLocalizations.of(context)!.tripAllPlacesAssignedOrEmpty, style: const TextStyle(color: Colors.grey))))
                   : Expanded(
                       child: ListView.builder(
                         itemCount: poolPins.length,
@@ -408,18 +399,17 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                   onPressed: _showColorPicker,
                   icon: const Icon(Icons.color_lens),
                   color: activeTheme,
-                  tooltip: 'Tema Rengi Seç',
+                  tooltip: AppLocalizations.of(context)!.tripThemeSelectTooltip,
                 ),
-                const SizedBox(width: 8),
-              ],
+                const SizedBox(width: 8),      ],
               bottom: TabBar(
                 labelColor: activeTheme,
                 unselectedLabelColor: Colors.grey,
                 indicatorColor: activeTheme,
-                tabs: const [
-                  Tab(icon: Icon(Icons.place), text: 'Pin Havuzu'),
-                  Tab(icon: Icon(Icons.calendar_view_day), text: 'Günlük Plan'),
-                  Tab(icon: Icon(Icons.note_alt), text: 'Notlar'),
+                tabs: [
+                  Tab(icon: const Icon(Icons.place), text: AppLocalizations.of(context)!.tripTabPinPool),
+                  Tab(icon: const Icon(Icons.calendar_view_day), text: AppLocalizations.of(context)!.tripTabDailyPlan),
+                  Tab(icon: const Icon(Icons.note_alt), text: AppLocalizations.of(context)!.tripTabNotes),
                 ],
               ),
             ),
@@ -427,7 +417,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
               children: [
                 // 1. SEKME: PİN HAVUZU
                 allPins.isEmpty
-                    ? const Center(child: Text('Haritada henüz kaydedilmiş bir yer yok.', style: TextStyle(color: Colors.grey)))
+                    ? Center(child: Text(AppLocalizations.of(context)!.tripNoPlacesOnMapYet, style: const TextStyle(color: Colors.grey)))
                     : ListView.builder(
                         padding: const EdgeInsets.all(12),
                         itemCount: allPins.length,
@@ -473,9 +463,9 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Akıllı Dağıt', style: TextStyle(fontWeight: FontWeight.bold, color: activeTheme, fontSize: 14)),
+                                Text(AppLocalizations.of(context)!.tripSmartDistributeTitle, style: TextStyle(fontWeight: FontWeight.bold, color: activeTheme, fontSize: 14)),
                                 const SizedBox(height: 2),
-                                const Text('Sabitlenenleri koru, kalanları yakınlığa göre böl', style: TextStyle(fontSize: 11, color: Colors.black87)),
+                                Text(AppLocalizations.of(context)!.tripSmartDistributeSubtitle, style: const TextStyle(fontSize: 11, color: Colors.black87)),
                               ],
                             ),
                           ),
@@ -488,7 +478,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                             ),
                             onPressed: () => _optimizeAllDaysRoute(allPins, totalDays),
-                            child: const Text('Başlat', style: TextStyle(fontWeight: FontWeight.bold)),
+                            child: Text(AppLocalizations.of(context)!.tripSmartDistributeStartButton, style: const TextStyle(fontWeight: FontWeight.bold)),
                           )
                         ],
                       ),
@@ -507,7 +497,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                           return Padding(
                             padding: const EdgeInsets.only(right: 8),
                             child: ChoiceChip(
-                              label: Text('$dayNum. Gün'),
+                              label: Text(AppLocalizations.of(context)!.tripDayNumber(dayNum)),
                               selected: isSelected,
                               selectedColor: activeTheme,
                               labelStyle: TextStyle(color: isSelected ? Colors.white : Colors.black, fontWeight: FontWeight.bold),
@@ -515,22 +505,6 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                             ),
                           );
                         },
-                      ),
-                    ),
-                    
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(child: Text('Sıralamak için basılı tutun', style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontStyle: FontStyle.italic))),
-                          TextButton.icon(
-                            onPressed: () => _showBulkMoveDialog(totalDays),
-                            icon: Icon(Icons.move_to_inbox, size: 16, color: activeTheme),
-                            label: Text('Günü Komple Taşı', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: activeTheme)),
-                            style: TextButton.styleFrom(backgroundColor: activeTheme.withOpacity(0.08), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
-                          ),
-                        ],
                       ),
                     ),
                     
@@ -542,7 +516,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                           final dayPins = allPins.where((p) => currentDayPinIds.contains(p.id ?? p.title)).toList();
                           dayPins.sort((a, b) => currentDayPinIds.indexOf(a.id ?? a.title).compareTo(currentDayPinIds.indexOf(b.id ?? b.title)));
 
-                          if (dayPins.isEmpty) return const Center(child: Text('Bu gün için plan yok.', style: TextStyle(color: Colors.grey)));
+                          if (dayPins.isEmpty) return Center(child: Text(AppLocalizations.of(context)!.tripNoPlanForThisDay, style: const TextStyle(color: Colors.grey)));
 
                           return ReorderableListView.builder(
                             padding: const EdgeInsets.all(16),
@@ -567,7 +541,6 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                                   trailing: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      // YENİ: Sabitleme / Kilit Butonu (Icons.push_pin)
                                       IconButton(
                                         icon: Icon(
                                           isPinned ? Icons.push_pin : Icons.push_pin_outlined,
@@ -575,13 +548,13 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                                           size: 20,
                                         ),
                                         onPressed: () => _togglePinLock(id),
-                                        tooltip: isPinned ? 'Kilidi Kaldır' : 'Bu Güne Sabitle',
+                                        tooltip: isPinned ? AppLocalizations.of(context)!.tripUnlockTooltip : AppLocalizations.of(context)!.tripLockToThisDayTooltip,
                                       ),
                                       PopupMenuButton<int>(
                                         icon: const Icon(Icons.calendar_month, color: Colors.blueGrey, size: 20),
                                         onSelected: (int targetDay) => _moveSinglePinToAnotherDay(id, _activeDayIndex, targetDay),
                                         itemBuilder: (context) => List.generate(totalDays, (i) => i + 1).where((d) => d != _activeDayIndex)
-                                            .map((d) => PopupMenuItem<int>(value: d, child: Text('$d. Gün\'e Taşı'))).toList(),
+                                            .map((d) => PopupMenuItem<int>(value: d, child: Text(AppLocalizations.of(context)!.tripMoveToDay(d)))).toList(),
                                       ),
                                       IconButton(icon: const Icon(Icons.remove_circle_outline, color: Colors.red, size: 20), onPressed: () => _removePinFromDay(id, _activeDayIndex)),
                                       const Icon(Icons.drag_handle, color: Colors.grey),
@@ -595,17 +568,57 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                       ),
                     ),
                     
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: () => _showAddPinToDayBottomSheet(allPins),
-                          icon: const Icon(Icons.add_location_alt),
-                          label: Text('$_activeDayIndex. Güne Mekan Ekle', style: const TextStyle(fontWeight: FontWeight.bold)),
-                          style: ElevatedButton.styleFrom(backgroundColor: activeTheme, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                        ),
-                      ),
+                    // GÜNCELLENDİ: Mekan Ekleme ve Rotayı Gör Butonları
+                    Builder(
+                      builder: (context) {
+                        final String dayKey = _activeDayIndex.toString();
+                        final int pinCount = (_itinerary[dayKey] ?? []).length;
+                        
+                        return Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            children: [
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton.icon(
+                                  onPressed: () => _showAddPinToDayBottomSheet(allPins),
+                                  icon: const Icon(Icons.add_location_alt),
+                                  label: Text(AppLocalizations.of(context)!.tripAddPlaceToDay(_activeDayIndex), style: const TextStyle(fontWeight: FontWeight.bold)),
+                                  style: ElevatedButton.styleFrom(backgroundColor: activeTheme, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                                ),
+                              ),
+                              // Eğer o gün en az 2 mekan varsa rotayı göster butonu belirir
+                              if (pinCount > 1) ...[
+                                const SizedBox(height: 10),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: OutlinedButton.icon(
+                                    onPressed: () {
+                                      // YENİ: O günün mekan listesini (sırasıyla) haritaya yolluyoruz!
+                                      final List<String> currentDayPinIds = List<String>.from(_itinerary[dayKey] ?? []);
+                                      final dayPins = allPins.where((p) => currentDayPinIds.contains(p.id ?? p.title)).toList();
+                                      dayPins.sort((a, b) => currentDayPinIds.indexOf(a.id ?? a.title).compareTo(currentDayPinIds.indexOf(b.id ?? b.title)));
+                                      
+                                      Navigator.pop(context, {
+                                        'isRoute': true,
+                                        'pins': dayPins,
+                                        'themeColor': _themeColor, // Sadece değişkenin kendisi
+                                      });
+                                    },
+                                    icon: Icon(Icons.route, color: activeTheme),
+                                    label: Text(AppLocalizations.of(context)!.tripSeeRouteOnMap, style: TextStyle(fontWeight: FontWeight.bold, color: activeTheme)),
+                                    style: OutlinedButton.styleFrom(
+                                      side: BorderSide(color: activeTheme, width: 2),
+                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        );
+                      }
                     ),
                   ],
                 ),
@@ -622,7 +635,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                           expands: true,
                           textAlignVertical: TextAlignVertical.top,
                           decoration: InputDecoration(
-                            hintText: 'Aklına gelen her şeyi buraya karalayabilirsin...',
+                            hintText: AppLocalizations.of(context)!.tripNotesHint,
                             filled: true,
                             fillColor: Colors.white,
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
@@ -635,7 +648,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                         child: ElevatedButton.icon(
                           onPressed: _saveNotes,
                           icon: const Icon(Icons.save),
-                          label: const Text('Notları Kaydet', style: TextStyle(fontWeight: FontWeight.bold)),
+                          label: Text(AppLocalizations.of(context)!.tripSaveNotesButton, style: const TextStyle(fontWeight: FontWeight.bold)),
                           style: ElevatedButton.styleFrom(backgroundColor: activeTheme, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                         ),
                       ),

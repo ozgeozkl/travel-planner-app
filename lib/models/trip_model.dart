@@ -10,10 +10,8 @@ class TripModel {
   final List<String> selectedPinIds; 
   final Map<String, dynamic> itinerary; 
   final int themeColor;
-  
-  // YENİ EKLENEN: Hangi pinin hangi güne sabitlendiğini tutar
-  // Örnek: {'pinId_1': '2'} -> pinId_1 isimli mekan 2. güne sabitlenmiş demektir.
   final Map<String, dynamic> lockedPins; 
+  final bool isArchived; // YENİ: Manuel arşivlenme durumu
 
   TripModel({
     this.id,
@@ -25,8 +23,18 @@ class TripModel {
     this.selectedPinIds = const [], 
     this.itinerary = const {},
     this.themeColor = 0xFFFF5722,
-    this.lockedPins = const {}, // Varsayılan olarak boş sabitleme matrisi
+    this.lockedPins = const {},
+    this.isArchived = false, // Varsayılan: Arşivlenmemiş
   });
+
+  // YENİ Yardımcı Getter: Bitiş tarihi geçti mi veya manuel arşivlendi mi?
+  bool get isPast {
+    if (isArchived) return true;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final tripEnd = DateTime(endDate.year, endDate.month, endDate.day);
+    return tripEnd.isBefore(today);
+  }
 
   Map<String, dynamic> toMap() {
     return {
@@ -38,7 +46,8 @@ class TripModel {
       'selectedPinIds': selectedPinIds,
       'itinerary': itinerary,
       'themeColor': themeColor,
-      'lockedPins': lockedPins, // Veritabanına kaydet
+      'lockedPins': lockedPins,
+      'isArchived': isArchived,
     };
   }
 
@@ -53,7 +62,8 @@ class TripModel {
       selectedPinIds: List<String>.from(map['selectedPinIds'] ?? []),
       itinerary: map['itinerary'] as Map<String, dynamic>? ?? {},
       themeColor: map['themeColor'] ?? 0xFFFF5722,
-      lockedPins: map['lockedPins'] as Map<String, dynamic>? ?? {}, // Veritabanından oku
+      lockedPins: map['lockedPins'] as Map<String, dynamic>? ?? {},
+      isArchived: map['isArchived'] ?? false,
     );
   }
 }

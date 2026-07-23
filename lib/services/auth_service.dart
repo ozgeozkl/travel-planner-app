@@ -1,5 +1,7 @@
+import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:developer' as developer;
+import 'package:travel_planner/l10n/app_localizations.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -8,7 +10,8 @@ class AuthService {
   User? get currentUser => _auth.currentUser;
 
   // 1. Kayıt Ol
-  Future<User?> signUpWithEmail(String email, String password) async {
+  Future<User?> signUpWithEmail(BuildContext context, String email, String password) async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       UserCredential credential = await _auth.createUserWithEmailAndPassword(
         email: email,
@@ -16,23 +19,24 @@ class AuthService {
       );
       return credential.user;
     } on FirebaseAuthException catch (e) {
-      String errorMessage = 'Kayıt olurken bir hata oluştu.';
+      String errorMessage = l10n.authErrorSignUp;
       if (e.code == 'weak-password') {
-        errorMessage = 'Şifreniz çok zayıf. Lütfen en az 6 karakterli daha güçlü bir şifre belirleyin.';
+        errorMessage = l10n.authErrorWeakPassword;
       } else if (e.code == 'email-already-in-use') {
-        errorMessage = 'Bu e-posta adresi ile zaten kayıtlı bir hesap bulunuyor.';
+        errorMessage = l10n.authErrorEmailInUse;
       } else if (e.code == 'invalid-email') {
-        errorMessage = 'Lütfen geçerli bir e-posta adresi girin.';
+        errorMessage = l10n.authErrorInvalidEmail;
       }
       developer.log('Kayıt Hatası: ${e.code}', name: 'AuthService');
       throw Exception(errorMessage);
     } catch (e) {
-      throw Exception('Beklenmeyen bir hata oluştu.');
+      throw Exception(l10n.authErrorUnexpected);
     }
   }
 
   // 2. Giriş Yap
-  Future<User?> signInWithEmail(String email, String password) async {
+  Future<User?> signInWithEmail(BuildContext context, String email, String password) async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       UserCredential credential = await _auth.signInWithEmailAndPassword(
         email: email,
@@ -40,25 +44,26 @@ class AuthService {
       );
       return credential.user;
     } on FirebaseAuthException catch (e) {
-      String errorMessage = 'Giriş yapılamadı.';
+      String errorMessage = l10n.authErrorSignIn;
       // Firebase güvenlik gereği artık "kullanıcı yok" ve "şifre yanlış" hatalarını 
       // "invalid-credential" altında birleştiriyor (Email enumeration saldırılarını önlemek için).
       if (e.code == 'user-not-found' || e.code == 'wrong-password' || e.code == 'invalid-credential') {
-        errorMessage = 'E-posta adresiniz veya şifreniz hatalı. Lütfen kontrol edin.';
+        errorMessage = l10n.authErrorInvalidCredential;
       } else if (e.code == 'invalid-email') {
-        errorMessage = 'Lütfen geçerli bir e-posta adresi formatı girin.';
+        errorMessage = l10n.authErrorInvalidEmailFormat;
       } else if (e.code == 'user-disabled') {
-        errorMessage = 'Bu kullanıcı hesabı sistem tarafından engellenmiş.';
+        errorMessage = l10n.authErrorUserDisabled;
       }
       developer.log('Giriş Hatası: ${e.code}', name: 'AuthService');
       throw Exception(errorMessage);
     } catch (e) {
-      throw Exception('Beklenmeyen bir hata oluştu.');
+      throw Exception(l10n.authErrorUnexpected);
     }
   }
 
   // 3. E-posta Doğrulama Linki Gönder
-  Future<void> sendEmailVerification() async {
+  Future<void> sendEmailVerification(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       User? user = _auth.currentUser;
       if (user != null && !user.emailVerified) {
@@ -66,30 +71,32 @@ class AuthService {
       }
     } catch (e) {
       developer.log('Doğrulama E-postası Hatası: $e', name: 'AuthService');
-      throw Exception('Doğrulama e-postası gönderilemedi.');
+      throw Exception(l10n.authErrorVerificationEmail);
     }
   }
 
   // 4. Şifremi Unuttum (Sıfırlama Linki Gönder)
-  Future<void> sendPasswordResetEmail(String email) async {
+  Future<void> sendPasswordResetEmail(BuildContext context, String email) async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       await _auth.sendPasswordResetEmail(email: email);
     } on FirebaseAuthException catch (e) {
-      String errorMessage = 'Şifre sıfırlama linki gönderilemedi.';
+      String errorMessage = l10n.authErrorPasswordReset;
       if (e.code == 'invalid-email') {
-        errorMessage = 'Geçersiz bir e-posta adresi girdiniz.';
+        errorMessage = l10n.authErrorInvalidEmailReset;
       }
       throw Exception(errorMessage);
     }
   }
 
   // 5. Çıkış Yap
-  Future<void> signOut() async {
+  Future<void> signOut(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       await _auth.signOut();
     } catch (e) {
       developer.log('Çıkış Hatası: $e', name: 'AuthService');
-      throw Exception('Çıkış yapılırken bir sorun oluştu.');
+      throw Exception(l10n.authErrorSignOut);
     }
   }
 }

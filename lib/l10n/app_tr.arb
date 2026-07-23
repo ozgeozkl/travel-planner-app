@@ -1,0 +1,211 @@
+{
+  "emptyFieldsError": "Lütfen e-posta ve şifrenizi girin.",
+  "emailVerifyError": "Lütfen e-posta adresinize gelen linke tıklayarak hesabınızı doğrulayın.",
+  "loginSuccess": "Giriş başarılı! Haritaya yönlendiriliyorsunuz...",
+  "loginSubtitle": "Seyahatlerini planlamaya başlamak için giriş yap",
+  "emailLabel": "E-posta",
+  "passwordLabel": "Şifre",
+  "emailRequiredForReset": "Lütfen önce e-posta adresinizi yukarıya yazın.",
+  "passwordResetSent": "Şifre sıfırlama linki e-postanıza gönderildi.",
+  "forgotPassword": "Şifremi Unuttum",
+  "loginButton": "Giriş Yap",
+  "noAccountRegister": "Hesabın yok mu? Hemen kayıt ol.",
+  "registerEmptyFieldsError": "Lütfen e-posta ve şifre alanlarını doldurun.",
+  "registerSuccessMsg": "Kayıt başarılı! Lütfen e-posta adresinize gelen doğrulama linkine tıklayın.",
+  "registerAppBarTitle": "Yeni Hesap Oluştur",
+  "registerTitle": "Aramıza Katıl",
+  "registerSubtitle": "Seyahat haritanı oluşturmak için ücretsiz hesap aç",
+  "registerEmailLabel": "E-posta Adresi",
+  "registerPasswordLabel": "Şifre (En az 6 karakter)",
+  "registerButton": "Kayıt Ol ve Onay Kodu Gönder",
+  "locationServicesDisabled": "Konum servisleri kapalı.",
+  "locationPermissionDenied": "Konum izni verilmedi.",
+  "locationPermissionDeniedForever": "Konum izinleri kalıcı olarak reddedildi.",
+  "locationFetchFailed": "Konum alınamadı.",
+  "mapAddPlaceTitle": "Yeni Yer Ekle",
+  "mapEditPlaceTitle": "Yeri Düzenle",
+  "placeNameHint": "Mekan Adı (Zorunlu)",
+  "placeNameLabel": "Mekan Adı",
+  "placeNoteHint": "Buraya dair notlarınız...",
+  "placeNoteLabel": "Not (İsteğe Bağlı)",
+  "addPhotoLabel": "Fotoğraf Ekle",
+  "selectPinColorLabel": "Pin Rengi Seçin:",
+  "processingDataWait": "Veriler işleniyor...\nLütfen bekleyin.",
+  "cancelButton": "İptal",
+  "saveButton": "Kaydet",
+  "savedSuccessfully": "Kaydedildi!",
+  "errorOccurred": "Hata oluştu.",
+  "updatedSuccessfully": "Güncellendi!",
+  "noNoteAdded": "Not eklenmemiş.",
+  "areYouSure": "Emin misiniz?",
+  "deletePlaceWithPhoto": "{title} ve içindeki fotoğraf kalıcı olarak silinecek.",
+  "@deletePlaceWithPhoto": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
+  "deletePlaceOnly": "{title} silinecek.",
+  "@deletePlaceOnly": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
+  "deleteButton": "Sil",
+  "noSavedPlacesYet": "Henüz kaydedilmiş bir yer yok.",
+  "mySavedPlaces": "Kaydettiğim Yerler",
+  "addressLoadingOrNotFound": "Adres yükleniyor veya bulunamadı...",
+  "placeNotFoundLongPress": "Mekan bulunamadı. Haritaya UZUN BASARAK kendiniz ekleyebilirsiniz!",
+  "myTravelMapTitle": "Seyahat Haritam",
+  "myProfileTooltip": "Profilim",
+  "savedPlacesTooltip": "Kaydedilen Yerler",
+  "searchCityOrPlaceHint": "Şehir veya mekan ara...",
+  "plannerCreateTripTitle": "Yeni Seyahat Planla",
+  "plannerTripTitleLabel": "Seyahat Başlığı (Örn: Roma Tatili)",
+  "plannerSelectDateRange": "Tarih Aralığı Seç",
+  "plannerFillAllFieldsError": "Lütfen tüm alanları doldurun.",
+  "plannerCreateButton": "Oluştur",
+  "plannerTripArchived": "Seyahat arşive taşındı.",
+  "plannerTripUnarchived": "Seyahat aktif planlara taşındı.",
+  "plannerDeleteTripTitle": "Seyahati Sil",
+  "plannerDeleteTripConfirm": "\"{title}\" seyahatini silmek istediğinize emin misiniz?",
+  "@plannerDeleteTripConfirm": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
+  "plannerAppBarTitle": "Seyahat Planlarım",
+  "plannerTabActive": "Planlananlar",
+  "plannerTabPast": "Geçmiş / Arşiv",
+  "plannerNoPastTrips": "Geçmiş seyahat bulunmuyor.",
+  "plannerNoActiveTrips": "Henüz planlanmış bir seyahatiniz yok.",
+  "plannerMoveToActive": "Aktife Taşı",
+  "plannerMoveToArchive": "Arşive Kaldır",
+  "plannerPlaceCount": "{count} Mekan",
+  "@plannerPlaceCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "plannerCompleted": "Tamamlandı",
+  "plannerNewTripFab": "Yeni Seyahat",
+  "tripThemeSelectTitle": "Gezi Temasını Seç",
+  "tripSmartDistributionSuccess": "🔒 Sabitlenen yerler korunarak akıllı dağıtım yapıldı!",
+  "tripNotesSavedSuccess": "Notlar kaydedildi!",
+  "tripSelectPlaceForDay": "{dayIndex}. Gün İçin Mekan Seç",
+  "@tripSelectPlaceForDay": {
+    "placeholders": {
+      "dayIndex": { "type": "int" }
+    }
+  },
+  "tripAllPlacesAssignedOrEmpty": "Tüm mekanlar atandı veya havuz boş.",
+  "tripThemeSelectTooltip": "Tema Rengi Seç",
+  "tripTabPinPool": "Pin Havuzu",
+  "tripTabDailyPlan": "Günlük Plan",
+  "tripTabNotes": "Notlar",
+  "tripNoPlacesOnMapYet": "Haritada henüz kaydedilmiş bir yer yok.",
+  "tripSmartDistributeTitle": "Akıllı Dağıt",
+  "tripSmartDistributeSubtitle": "Sabitlenenleri koru, kalanları yakınlığa göre böl",
+  "tripSmartDistributeStartButton": "Başlat",
+  "tripDayNumber": "{dayNum}. Gün",
+  "@tripDayNumber": {
+    "placeholders": {
+      "dayNum": { "type": "int" }
+    }
+  },
+  "tripNoPlanForThisDay": "Bu gün için plan yok.",
+  "tripUnlockTooltip": "Kilidi Kaldır",
+  "tripLockToThisDayTooltip": "Bu Güne Sabitle",
+  "tripMoveToDay": "{dayNum}. Gün'e Taşı",
+  "@tripMoveToDay": {
+    "placeholders": {
+      "dayNum": { "type": "int" }
+    }
+  },
+  "tripAddPlaceToDay": "{dayNum}. Güne Mekan Ekle",
+  "@tripAddPlaceToDay": {
+    "placeholders": {
+      "dayNum": { "type": "int" }
+    }
+  },
+  "tripSeeRouteOnMap": "Rotayı Haritada Gör",
+  "tripNotesHint": "Aklına gelen her şeyi buraya karalayabilirsin...",
+  "tripSaveNotesButton": "Notları Kaydet",
+  "tripBulkMoveDayTitle": "{dayIndex}. Günü Toplu Taşı",
+  "@tripBulkMoveDayTitle": {
+    "placeholders": {
+      "dayIndex": { "type": "int" }
+    }
+  },
+  "tripBulkMoveDayContent": "Bu gündeki tüm mekanları hangi güne aktarmak istiyorsunuz?",
+  "tripBulkMoveTargetDayLabel": "Hedef Gün",
+  "tripBulkMoveMoveAllButton": "Hepsini Taşı",
+  "galleryAppBarTitle": "Anı Albümüm",
+  "galleryNoPhotosYet": "Henüz fotoğraflı bir anı eklemediniz.",
+  "profileAppBarTitle": "Profilim",
+  "profilePhotoUpdated": "Profil fotoğrafı güncellendi.",
+  "profilePhotoUploadFailed": "Fotoğraf yüklenemedi.",
+  "profileStatSavedPlaces": "Kayıtlı Yer",
+  "profileStatPhotos": "Fotoğraflar",
+  "profileMenuTripPlanner": "Seyahat Planlama",
+  "profileMenuPastTrips": "Geçmiş Seyahatlerim",
+  "profileMenuLogout": "Çıkış Yap",
+  "savedListAppBarTitle": "Kaydedilen Yerler",
+  "savedListEmptyText": "Henüz kaydedilmiş bir yer yok.",
+  "savedListNoAddress": "Adres bilgisi bulunamadı",
+  "settingsSecurityAuthTitle": "Güvenlik Doğrulaması",
+  "settingsSecurityAuthSubtitle": "Bu kritik işlem için mevcut şifrenizi girmeniz gerekmektedir.",
+  "settingsEmailLabel": "E-posta",
+  "settingsCurrentPasswordLabel": "Mevcut Şifre",
+  "settingsCancel": "İptal",
+  "settingsVerify": "Doğrula",
+  "settingsWrongPassword": "Hatalı şifre girdiniz.",
+  "settingsChangePasswordTitle": "Şifre Değiştir",
+  "settingsNewPasswordLabel": "Yeni Şifre",
+  "settingsPasswordLengthError": "Şifre en az 6 karakter olmalıdır.",
+  "settingsPasswordUpdateSuccess": "Şifreniz başarıyla güncellendi.",
+  "settingsPasswordUpdateError": "Şifre güncellenemedi.",
+  "settingsUpdate": "Güncelle",
+  "settingsChangeEmailTitle": "E-posta Değiştir",
+  "settingsNewEmailLabel": "Yeni E-posta Adresi",
+  "settingsInvalidEmailError": "Lütfen geçerli bir e-posta adresi girin.",
+  "settingsVerificationSentTitle": "Doğrulama Gönderildi 📩",
+  "settingsVerificationSentBody": "Yeni e-posta adresinize bir onay bağlantısı gönderdik.\n\nLütfen gelen kutunuzu kontrol edin ve bağlantıya tıklayın. Onaylama işlemini yapana kadar mevcut e-postanız görünmeye devam edecektir.",
+  "settingsGotIt": "Anladım",
+  "settingsEmailUpdateError": "E-posta güncellenemedi. Başka bir hesap tarafından kullanılıyor olabilir.",
+  "settingsDeleteAccountTitle": "Hesabı Kalıcı Olarak Sil",
+  "settingsDeleteAccountWarning": "Hesabınızı sildiğinizde tüm kaydedilen yerleriniz ve anılarınız kalıcı olarak silinecektir. Bu işlem geri alınamaz.",
+  "settingsDeleteAccountConfirm": "Hesabımı Sil",
+  "settingsDeleteAccountError": "Hesap silme işlemi başarısız oldu.",
+  "settingsAppBarTitle": "Ayarlar",
+  "settingsAppLanguage": "Uygulama Dili",
+  "authErrorSignUp": "Kayıt olurken bir hata oluştu.",
+  "authErrorWeakPassword": "Şifreniz çok zayıf. Lütfen en az 6 karakterli daha güçlü bir şifre belirleyin.",
+  "authErrorEmailInUse": "Bu e-posta adresi ile zaten kayıtlı bir hesap bulunuyor.",
+  "authErrorInvalidEmail": "Lütfen geçerli bir e-posta adresi girin.",
+  "authErrorUnexpected": "Beklenmeyen bir hata oluştu.",
+  "authErrorSignIn": "Giriş yapılamadı.",
+  "authErrorInvalidCredential": "E-posta adresiniz veya şifreniz hatalı. Lütfen kontrol edin.",
+  "authErrorInvalidEmailFormat": "Lütfen geçerli bir e-posta adresi formatı girin.",
+  "authErrorUserDisabled": "Bu kullanıcı hesabı sistem tarafından engellenmiş.",
+  "authErrorVerificationEmail": "Doğrulama e-postası gönderilemedi.",
+  "authErrorPasswordReset": "Şifre sıfırlama linki gönderilemedi.",
+  "authErrorInvalidEmailReset": "Geçersiz bir e-posta adresi girdiniz.",
+  "authErrorSignOut": "Çıkış yapılırken bir sorun oluştu.",
+  "dbErrorAddPin": "Yer kaydedilemedi.",
+  "dbErrorPinIdNotFound": "Güncellenecek pinin ID'si bulunamadı.",
+  "dbErrorUpdatePin": "Yer güncellenemedi.",
+  "dbErrorDeletePin": "Yer silinemedi.",
+  "placesFallbackType": "Mekan",
+  "appTitle": "Seyahat Planlayıcı",
+  "securityApprovalTitle": "Güvenlik Onayı",
+  "emailNotVerifiedMessage": "Kayıt oldunuz ancak {email} adresini henüz onaylamadınız.",
+  "@emailNotVerifiedMessage": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "checkInboxMessage": "Lütfen gelen kutunuzu (veya spam klasörünü) kontrol edip onay linkine tıklayın. Onayladıktan sonra tekrar giriş yapabilirsiniz.",
+  "returnToLoginButton": "Giriş Ekranına Dön"
+}

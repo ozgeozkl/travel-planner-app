@@ -1,7 +1,9 @@
+import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'dart:developer' as developer;
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
+import 'package:travel_planner/l10n/app_localizations.dart';
 
 // Çekilen mekanları tutacağımız basit bir model
 class PlaceResult {
@@ -14,7 +16,9 @@ class PlaceResult {
 
 class PlacesService {
   // Verilen merkezin 1000 metre (1km) etrafındaki mekanları getirir
-  Future<List<PlaceResult>> getNearbyPlaces(LatLng center, {int radius = 1000}) async {
+  Future<List<PlaceResult>> getNearbyPlaces(BuildContext context, LatLng center, {int radius = 1000}) async {
+    final l10n = AppLocalizations.of(context)!;
+    
     // Overpass QL Sorgusu: Turistik yerler, kafeler ve restoranları istiyoruz
     final String query = '''
       [out:json];
@@ -41,7 +45,10 @@ class PlacesService {
           // Sadece ismi olan mekanları listeye al
           if (el['tags'] != null && el['tags']['name'] != null) {
             final name = el['tags']['name'];
-            final type = el['tags']['tourism'] ?? el['tags']['amenity'] ?? 'Mekan';
+            
+            // "Mekan" sabit kelimesi yerine çeviriden gelen kelimeyi kullanıyoruz
+            final type = el['tags']['tourism'] ?? el['tags']['amenity'] ?? l10n.placesFallbackType;
+            
             final lat = el['lat'] as double;
             final lon = el['lon'] as double;
             

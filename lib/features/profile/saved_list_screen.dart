@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/pin_model.dart';
+import 'package:travel_planner/l10n/app_localizations.dart';
 
 class SavedListScreen extends StatelessWidget {
   final List<PinModel> pins;
@@ -7,15 +8,17 @@ class SavedListScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Kaydedilen Yerler', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(l10n.savedListAppBarTitle, style: const TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 1,
       ),
       body: pins.isEmpty
-          ? const Center(child: Text('Henüz kaydedilmiş bir yer yok.'))
+          ? Center(child: Text(l10n.savedListEmptyText))
           : ListView.separated(
               itemCount: pins.length,
               separatorBuilder: (context, index) => const Divider(height: 1, color: Colors.black12),
@@ -49,7 +52,7 @@ class SavedListScreen extends StatelessWidget {
                             const SizedBox(width: 6),
                             Expanded(
                               child: Text(
-                                pin.address ?? 'Adres bilgisi bulunamadı', // Adres burada görünecek
+                                pin.address ?? l10n.savedListNoAddress, // Adres burada görünecek
                                 style: const TextStyle(color: Colors.blueGrey, fontSize: 13, fontWeight: FontWeight.w500),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -62,7 +65,7 @@ class SavedListScreen extends StatelessWidget {
                   ),
                   trailing: const Icon(Icons.chevron_right, color: Colors.grey),
                   onTap: () {
-              Navigator.pop(context, pin.latLng);
+                    Navigator.pop(context, pin.latLng);
                   },
                 );
               },

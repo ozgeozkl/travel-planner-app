@@ -1,0 +1,211 @@
+{
+  "emptyFieldsError": "Please enter your email and password.",
+  "emailVerifyError": "Please verify your account by clicking the link sent to your email.",
+  "loginSuccess": "Login successful! Redirecting to the map...",
+  "loginSubtitle": "Log in to start planning your travels",
+  "emailLabel": "Email",
+  "passwordLabel": "Password",
+  "emailRequiredForReset": "Please enter your email address above first.",
+  "passwordResetSent": "Password reset link has been sent to your email.",
+  "forgotPassword": "Forgot Password",
+  "loginButton": "Login",
+  "noAccountRegister": "Don't have an account? Register now.",
+  "registerEmptyFieldsError": "Please fill in the email and password fields.",
+  "registerSuccessMsg": "Registration successful! Please click the verification link sent to your email address.",
+  "registerAppBarTitle": "Create New Account",
+  "registerTitle": "Join Us",
+  "registerSubtitle": "Create a free account to start building your travel map",
+  "registerEmailLabel": "Email Address",
+  "registerPasswordLabel": "Password (At least 6 characters)",
+  "registerButton": "Register and Send Verification Code",
+  "locationServicesDisabled": "Location services are disabled.",
+  "locationPermissionDenied": "Location permission denied.",
+  "locationPermissionDeniedForever": "Location permissions are permanently denied.",
+  "locationFetchFailed": "Could not get location.",
+  "mapAddPlaceTitle": "Add New Place",
+  "mapEditPlaceTitle": "Edit Place",
+  "placeNameHint": "Place Name (Required)",
+  "placeNameLabel": "Place Name",
+  "placeNoteHint": "Your notes about here...",
+  "placeNoteLabel": "Note (Optional)",
+  "addPhotoLabel": "Add Photo",
+  "selectPinColorLabel": "Select Pin Color:",
+  "processingDataWait": "Processing data...\nPlease wait.",
+  "cancelButton": "Cancel",
+  "saveButton": "Save",
+  "savedSuccessfully": "Saved successfully!",
+  "errorOccurred": "An error occurred.",
+  "updatedSuccessfully": "Updated successfully!",
+  "noNoteAdded": "No note added.",
+  "areYouSure": "Are you sure?",
+  "deletePlaceWithPhoto": "{title} and its photo will be permanently deleted.",
+  "@deletePlaceWithPhoto": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
+  "deletePlaceOnly": "{title} will be deleted.",
+  "@deletePlaceOnly": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
+  "deleteButton": "Delete",
+  "noSavedPlacesYet": "No places saved yet.",
+  "mySavedPlaces": "My Saved Places",
+  "addressLoadingOrNotFound": "Loading address or not found...",
+  "placeNotFoundLongPress": "Place not found. LONG PRESS on the map to add it yourself!",
+  "myTravelMapTitle": "My Travel Map",
+  "myProfileTooltip": "My Profile",
+  "savedPlacesTooltip": "Saved Places",
+  "searchCityOrPlaceHint": "Search city or place...",
+  "plannerCreateTripTitle": "Plan a New Trip",
+  "plannerTripTitleLabel": "Trip Title (e.g. Rome Holiday)",
+  "plannerSelectDateRange": "Select Date Range",
+  "plannerFillAllFieldsError": "Please fill in all fields.",
+  "plannerCreateButton": "Create",
+  "plannerTripArchived": "Trip moved to archive.",
+  "plannerTripUnarchived": "Trip moved to active plans.",
+  "plannerDeleteTripTitle": "Delete Trip",
+  "plannerDeleteTripConfirm": "Are you sure you want to delete the trip \"{title}\"?",
+  "@plannerDeleteTripConfirm": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
+  "plannerAppBarTitle": "My Travel Plans",
+  "plannerTabActive": "Planned",
+  "plannerTabPast": "Past / Archive",
+  "plannerNoPastTrips": "No past trips found.",
+  "plannerNoActiveTrips": "You have no planned trips yet.",
+  "plannerMoveToActive": "Move to Active",
+  "plannerMoveToArchive": "Move to Archive",
+  "plannerPlaceCount": "{count} Places",
+  "@plannerPlaceCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "plannerCompleted": "Completed",
+  "plannerNewTripFab": "New Trip",
+  "tripThemeSelectTitle": "Select Trip Theme",
+  "tripSmartDistributionSuccess": "🔒 Smart distribution completed while keeping pinned places!",
+  "tripNotesSavedSuccess": "Notes saved successfully!",
+  "tripSelectPlaceForDay": "Select Place for Day {dayIndex}",
+  "@tripSelectPlaceForDay": {
+    "placeholders": {
+      "dayIndex": { "type": "int" }
+    }
+  },
+  "tripAllPlacesAssignedOrEmpty": "All places are assigned or the pool is empty.",
+  "tripThemeSelectTooltip": "Select Theme Color",
+  "tripTabPinPool": "Pin Pool",
+  "tripTabDailyPlan": "Daily Plan",
+  "tripTabNotes": "Notes",
+  "tripNoPlacesOnMapYet": "No places saved on the map yet.",
+  "tripSmartDistributeTitle": "Smart Distribute",
+  "tripSmartDistributeSubtitle": "Keep pinned, distribute the rest by proximity",
+  "tripSmartDistributeStartButton": "Start",
+  "tripDayNumber": "Day {dayNum}",
+  "@tripDayNumber": {
+    "placeholders": {
+      "dayNum": { "type": "int" }
+    }
+  },
+  "tripNoPlanForThisDay": "No plan for this day.",
+  "tripUnlockTooltip": "Unlock",
+  "tripLockToThisDayTooltip": "Pin to This Day",
+  "tripMoveToDay": "Move to Day {dayNum}",
+  "@tripMoveToDay": {
+    "placeholders": {
+      "dayNum": { "type": "int" }
+    }
+  },
+  "tripAddPlaceToDay": "Add Place to Day {dayNum}",
+  "@tripAddPlaceToDay": {
+    "placeholders": {
+      "dayNum": { "type": "int" }
+    }
+  },
+  "tripSeeRouteOnMap": "See Route on Map",
+  "tripNotesHint": "Jot down everything that comes to mind here...",
+  "tripSaveNotesButton": "Save Notes",
+  "tripBulkMoveDayTitle": "Bulk Move Day {dayIndex}",
+  "@tripBulkMoveDayTitle": {
+    "placeholders": {
+      "dayIndex": { "type": "int" }
+    }
+  },
+  "tripBulkMoveDayContent": "Which day do you want to move all places from this day to?",
+  "tripBulkMoveTargetDayLabel": "Target Day",
+  "tripBulkMoveMoveAllButton": "Move All",
+  "galleryAppBarTitle": "My Memory Album",
+  "galleryNoPhotosYet": "You haven't added any memories with photos yet.",
+  "profileAppBarTitle": "My Profile",
+  "profilePhotoUpdated": "Profile photo updated.",
+  "profilePhotoUploadFailed": "Could not upload photo.",
+  "profileStatSavedPlaces": "Saved Places",
+  "profileStatPhotos": "Photos",
+  "profileMenuTripPlanner": "Trip Planner",
+  "profileMenuPastTrips": "Past Trips",
+  "profileMenuLogout": "Log Out",
+  "savedListAppBarTitle": "Saved Places",
+  "savedListEmptyText": "No saved places yet.",
+  "savedListNoAddress": "Address not found",
+  "settingsSecurityAuthTitle": "Security Verification",
+  "settingsSecurityAuthSubtitle": "You must enter your current password for this critical action.",
+  "settingsEmailLabel": "Email",
+  "settingsCurrentPasswordLabel": "Current Password",
+  "settingsCancel": "Cancel",
+  "settingsVerify": "Verify",
+  "settingsWrongPassword": "You entered an incorrect password.",
+  "settingsChangePasswordTitle": "Change Password",
+  "settingsNewPasswordLabel": "New Password",
+  "settingsPasswordLengthError": "Password must be at least 6 characters.",
+  "settingsPasswordUpdateSuccess": "Your password has been successfully updated.",
+  "settingsPasswordUpdateError": "Failed to update password.",
+  "settingsUpdate": "Update",
+  "settingsChangeEmailTitle": "Change Email",
+  "settingsNewEmailLabel": "New Email Address",
+  "settingsInvalidEmailError": "Please enter a valid email address.",
+  "settingsVerificationSentTitle": "Verification Sent 📩",
+  "settingsVerificationSentBody": "We have sent a verification link to your new email address.\n\nPlease check your inbox and click the link. Your current email will remain visible until you confirm.",
+  "settingsGotIt": "Got it",
+  "settingsEmailUpdateError": "Failed to update email. It might be used by another account.",
+  "settingsDeleteAccountTitle": "Delete Account Permanently",
+  "settingsDeleteAccountWarning": "When you delete your account, all your saved places and memories will be permanently deleted. This action cannot be undone.",
+  "settingsDeleteAccountConfirm": "Delete My Account",
+  "settingsDeleteAccountError": "Failed to delete account.",
+  "settingsAppBarTitle": "Settings",
+  "settingsAppLanguage": "App Language",
+  "authErrorSignUp": "An error occurred during registration.",
+  "authErrorWeakPassword": "Your password is too weak. Please choose a stronger password with at least 6 characters.",
+  "authErrorEmailInUse": "An account already exists with this email address.",
+  "authErrorInvalidEmail": "Please enter a valid email address.",
+  "authErrorUnexpected": "An unexpected error occurred.",
+  "authErrorSignIn": "Sign in failed.",
+  "authErrorInvalidCredential": "Your email or password is incorrect. Please check again.",
+  "authErrorInvalidEmailFormat": "Please enter a valid email address format.",
+  "authErrorUserDisabled": "This user account has been disabled by the system.",
+  "authErrorVerificationEmail": "Failed to send verification email.",
+  "authErrorPasswordReset": "Failed to send password reset link.",
+  "authErrorInvalidEmailReset": "You entered an invalid email address.",
+  "authErrorSignOut": "An error occurred while signing out.",
+  "dbErrorAddPin": "Failed to save the location.",
+  "dbErrorPinIdNotFound": "The ID of the pin to update could not be found.",
+  "dbErrorUpdatePin": "Failed to update the location.",
+  "dbErrorDeletePin": "Failed to delete the location.",
+  "placesFallbackType": "Place",
+  "appTitle": "Travel Planner",
+  "securityApprovalTitle": "Security Verification",
+  "emailNotVerifiedMessage": "You have registered but have not yet verified the {email} address.",
+  "@emailNotVerifiedMessage": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "checkInboxMessage": "Please check your inbox (or spam folder) and click the verification link. You can log in again after verifying.",
+  "returnToLoginButton": "Return to Login"
+}

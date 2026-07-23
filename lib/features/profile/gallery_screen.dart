@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/pin_model.dart';
+import 'package:travel_planner/l10n/app_localizations.dart';
 
 class GalleryScreen extends StatelessWidget {
   final List<PinModel> photos;
@@ -9,13 +10,13 @@ class GalleryScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Anı Albümüm', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(AppLocalizations.of(context)!.galleryAppBarTitle, style: const TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 1,
       ),
       body: photos.isEmpty 
-        ? const Center(child: Text('Henüz fotoğraflı bir anı eklemediniz.'))
+        ? Center(child: Text(AppLocalizations.of(context)!.galleryNoPhotosYet))
         : GridView.builder(
             padding: const EdgeInsets.all(2),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(

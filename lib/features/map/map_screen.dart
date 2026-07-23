@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'package:flutter/foundation.dart' show kIsWeb; // YENİ: Web platformunu algılamak için
+import 'package:flutter/foundation.dart' show kIsWeb; 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -13,6 +13,7 @@ import '../../services/database_service.dart';
 import '../../services/geocoding_service.dart';
 import '../../models/pin_model.dart';
 import '../profile/profile_screen.dart';
+import 'package:travel_planner/l10n/app_localizations.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -29,6 +30,8 @@ class _MapScreenState extends State<MapScreen> {
   final MapController _mapController = MapController(); 
   final TextEditingController _searchController = TextEditingController(); 
   final String _currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
+  List<LatLng> _routePoints = []; 
+  Color _routeColor = Colors.blue;
 
   bool _isSearching = false; 
   PinModel? _openedPopupPin;
@@ -49,7 +52,7 @@ class _MapScreenState extends State<MapScreen> {
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Konum servisleri kapalı.')));
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.locationServicesDisabled)));
         setState(() => _isLocating = false);
         return;
       }
@@ -58,14 +61,14 @@ class _MapScreenState extends State<MapScreen> {
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Konum izni verilmedi.')));
+          if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.locationPermissionDenied)));
           setState(() => _isLocating = false);
           return;
         }
       }
       
       if (permission == LocationPermission.deniedForever) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Konum izinleri kalıcı olarak reddedildi.')));
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.locationPermissionDeniedForever)));
         setState(() => _isLocating = false);
         return;
       }
@@ -82,7 +85,7 @@ class _MapScreenState extends State<MapScreen> {
       
     } catch (e) {
       setState(() => _isLocating = false);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Konum alınamadı.')));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.locationFetchFailed)));
     }
   }
 
@@ -105,14 +108,14 @@ class _MapScreenState extends State<MapScreen> {
         return StatefulBuilder(
           builder: (context, setStateDialog) {
             return AlertDialog(
-              title: Text(existingPin == null ? 'Yeni Yer Ekle' : 'Yeri Düzenle'),
+              title: Text(existingPin == null ? AppLocalizations.of(context)!.mapAddPlaceTitle : AppLocalizations.of(context)!.mapEditPlaceTitle),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     TextField(
                       controller: titleController,
-                      decoration: const InputDecoration(hintText: 'Mekan Adı (Zorunlu)', labelText: 'Mekan Adı'),
+                      decoration: InputDecoration(hintText: AppLocalizations.of(context)!.placeNameHint, labelText: AppLocalizations.of(context)!.placeNameLabel),
                       autofocus: existingPin == null && suggestedTitle == null,
                       textCapitalization: TextCapitalization.words,
                       enabled: !isUploading,
@@ -120,7 +123,7 @@ class _MapScreenState extends State<MapScreen> {
                     const SizedBox(height: 12),
                     TextField(
                       controller: noteController,
-                      decoration: const InputDecoration(hintText: 'Buraya dair notlarınız...', labelText: 'Not (İsteğe Bağlı)'),
+                      decoration: InputDecoration(hintText: AppLocalizations.of(context)!.placeNoteHint, labelText: AppLocalizations.of(context)!.placeNoteLabel),
                       maxLines: 3,
                       enabled: !isUploading,
                     ),
@@ -157,13 +160,13 @@ class _MapScreenState extends State<MapScreen> {
                                   : null),
                         ),
                         child: selectedImage == null && (existingPin?.imageUrl == null || existingPin!.imageUrl!.isEmpty)
-                            ? const Center(
+                            ? Center(
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Icon(Icons.add_a_photo, color: Colors.grey, size: 30),
-                                    SizedBox(height: 8),
-                                    Text('Fotoğraf Ekle', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+                                    const Icon(Icons.add_a_photo, color: Colors.grey, size: 30),
+                                    const SizedBox(height: 8),
+                                    Text(AppLocalizations.of(context)!.addPhotoLabel, style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
                                   ],
                                 ),
                               )
@@ -172,7 +175,7 @@ class _MapScreenState extends State<MapScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    const Text('Pin Rengi Seçin:', style: TextStyle(fontWeight: FontWeight.bold)),
+                    Text(AppLocalizations.of(context)!.selectPinColorLabel, style: const TextStyle(fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 10,
@@ -194,8 +197,8 @@ class _MapScreenState extends State<MapScreen> {
                     if (isUploading) ...[
                       const SizedBox(height: 20),
                       const Center(child: CircularProgressIndicator()),
-                      const SizedBox(height: 8),
-                      const Center(child: Text('Veriler işleniyor...\nLütfen bekleyin.', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Colors.blue))),
+                      const SizedBox(height: 8), 
+                      Center(child: Text(AppLocalizations.of(context)!.processingDataWait, textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: Colors.blue))),
                     ]
                   ],
                 ),
@@ -203,7 +206,7 @@ class _MapScreenState extends State<MapScreen> {
               actions: [
                 TextButton(
                   onPressed: isUploading ? null : () => Navigator.pop(context, null), 
-                  child: const Text('İptal')
+                  child: Text(AppLocalizations.of(context)!.cancelButton)
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(backgroundColor: selectedColor, foregroundColor: Colors.white),
@@ -216,7 +219,6 @@ class _MapScreenState extends State<MapScreen> {
                     String? fetchedAddress = existingPin?.address;
 
                     try {
-                      // 1. FOTOĞRAF YÜKLEME
                       if (selectedImage != null) {
                         final bytes = await selectedImage!.readAsBytes();
                         final String fileName = 'pins/${_currentUserId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
@@ -227,7 +229,6 @@ class _MapScreenState extends State<MapScreen> {
                         finalImageUrl = await snapshot.ref.getDownloadURL(); 
                       }
 
-                      // 2. YENİ: ARKA PLANDA ADRES BULMA (Tersine Çözümleme)
                       if (fetchedAddress == null) {
                          double targetLat = point?.latitude ?? existingPin!.latitude;
                          double targetLon = point?.longitude ?? existingPin!.longitude;
@@ -246,11 +247,11 @@ class _MapScreenState extends State<MapScreen> {
                         'note': noteController.text.trim(),
                         'color': selectedColor.value,
                         'imageUrl': finalImageUrl, 
-                        'address': fetchedAddress, // YENİ: Adresi dışarı aktarıyoruz
+                        'address': fetchedAddress, 
                       });
                     }
                   },
-                  child: const Text('Kaydet'),
+                  child: Text(AppLocalizations.of(context)!.saveButton),
                 ),
               ],
             );
@@ -270,14 +271,14 @@ class _MapScreenState extends State<MapScreen> {
           longitude: point.longitude, 
           createdAt: DateTime.now(),
           imageUrl: result['imageUrl'], 
-          address: result['address'], // YENİ
+          address: result['address'], 
         );
         try {
-          await _databaseService.addPin(newPin);
-          if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Kaydedildi!'), backgroundColor: Colors.green));
+          await _databaseService.addPin(context, newPin);
+          if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.savedSuccessfully), backgroundColor: Colors.green));
           setState(() => _searchResults = []);
         } catch (e) {
-          if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Hata oluştu.'), backgroundColor: Colors.red));
+          if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.errorOccurred), backgroundColor: Colors.red));
         }
       } else if (existingPin != null) {
         final updatedPin = PinModel(
@@ -290,13 +291,13 @@ class _MapScreenState extends State<MapScreen> {
           longitude: existingPin.longitude, 
           createdAt: existingPin.createdAt,
           imageUrl: result['imageUrl'], 
-          address: result['address'], // YENİ
+          address: result['address'], 
         );
         try {
-          await _databaseService.updatePin(updatedPin);
-          if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Güncellendi!'), backgroundColor: Colors.green));
+          await _databaseService.updatePin(context, updatedPin);
+          if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.updatedSuccessfully), backgroundColor: Colors.green));
         } catch (e) {
-          if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Hata oluştu.'), backgroundColor: Colors.red));
+          if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.errorOccurred), backgroundColor: Colors.red));
         }
       }
       setState(() => _openedPopupPin = null);
@@ -349,7 +350,7 @@ class _MapScreenState extends State<MapScreen> {
             if (pin.note != null && pin.note!.isNotEmpty)
               Text(pin.note!, style: const TextStyle(fontSize: 13, color: Colors.black87), maxLines: 3, overflow: TextOverflow.ellipsis)
             else
-              const Text('Not eklenmemiş.', style: TextStyle(fontSize: 12, color: Colors.black54, fontStyle: FontStyle.italic)),
+              Text(AppLocalizations.of(context)!.noNoteAdded, style: const TextStyle(fontSize: 12, color: Colors.black54, fontStyle: FontStyle.italic)),
             const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
@@ -362,16 +363,18 @@ class _MapScreenState extends State<MapScreen> {
                     final bool? confirm = await showDialog(
                       context: context,
                       builder: (context) => AlertDialog(
-                        title: const Text('Emin misiniz?'), 
-                        content: Text(pin.imageUrl != null ? '${pin.title} ve içindeki fotoğraf kalıcı olarak silinecek.' : '${pin.title} silinecek.'),
+                        title: Text(AppLocalizations.of(context)!.areYouSure), 
+                        content: Text(pin.imageUrl != null 
+                            ? AppLocalizations.of(context)!.deletePlaceWithPhoto(pin.title) 
+                            : AppLocalizations.of(context)!.deletePlaceOnly(pin.title)),
                         actions: [
-                          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('İptal')),
-                          ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white), onPressed: () => Navigator.pop(context, true), child: const Text('Sil')),
+                          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(AppLocalizations.of(context)!.cancelButton)),
+                          ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white), onPressed: () => Navigator.pop(context, true), child: Text(AppLocalizations.of(context)!.deleteButton)),
                         ],
                       ),
                     );
                     if (confirm == true && pin.id != null) {
-                      await _databaseService.deletePin(pin.id!);
+                      await _databaseService.deletePin(context, pin.id!);
                       setState(() => _openedPopupPin = null);
                     }
                   },
@@ -395,19 +398,18 @@ void _showPinListBottomSheet() {
           stream: _databaseService.getUserPins(),
           builder: (context, snapshot) {
             if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-            
-            final pins = snapshot.data!;
+             final pins = snapshot.data!;
             if (pins.isEmpty) {
-              return const Center(
-                child: Padding(padding: EdgeInsets.all(24.0), child: Text('Henüz kaydedilmiş bir yer yok.', style: TextStyle(color: Colors.grey))),
+              return Center(
+                child: Padding(padding: const EdgeInsets.all(24.0), child: Text(AppLocalizations.of(context)!.noSavedPlacesYet, style: const TextStyle(color: Colors.grey))),
               );
             }
             
             return Column(
               children: [
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 20.0),
-                  child: Text('Kaydettiğim Yerler', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+                 Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 20.0),
+                  child: Text(AppLocalizations.of(context)!.mySavedPlaces, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
                 ),
                 const Divider(height: 1, color: Colors.black12),
                 Expanded(
@@ -440,7 +442,7 @@ void _showPinListBottomSheet() {
                                   const SizedBox(width: 4),
                                   Expanded(
                                     child: Text(
-                                      pin.address ?? 'Adres yükleniyor veya bulunamadı...',
+                                      pin.address ?? AppLocalizations.of(context)!.addressLoadingOrNotFound,
                                       style: const TextStyle(fontSize: 12, color: Colors.blueGrey, fontWeight: FontWeight.w400),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
@@ -504,7 +506,7 @@ void _showPinListBottomSheet() {
         _mapController.move(results.first.location, 11.5); 
       }
     } else {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Mekan bulunamadı. Haritaya UZUN BASARAK kendiniz ekleyebilirsiniz!'), backgroundColor: Colors.orange, duration: Duration(seconds: 4)));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.placeNotFoundLongPress), backgroundColor: Colors.orange, duration: const Duration(seconds: 4)));
     }
   }
 
@@ -571,41 +573,72 @@ void _showPinListBottomSheet() {
 
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Seyahat Haritam', style: TextStyle(fontWeight: FontWeight.bold)),
+            title: Text(AppLocalizations.of(context)!.myTravelMapTitle, style: const TextStyle(fontWeight: FontWeight.bold)),
             actions: [
-   // YENİ: Profil Sayfasına Giden Buton
               IconButton(
                 icon: const Icon(Icons.person, color: Colors.blue),
-                tooltip: 'Profilim',
+                tooltip: AppLocalizations.of(context)!.myProfileTooltip,
               onPressed: () async {
-  // 1. Profil sayfasına git ve oradan gelecek sonucu bekle
-  // NOT: 'dynamic' kelimesini ekledik ki her türlü veriyi (PinModel veya LatLng) kabul etsin
-  final dynamic selectedLocation = await Navigator.push(
+  final dynamic result = await Navigator.push(
     context,
     MaterialPageRoute(builder: (context) => const ProfileScreen()),
   );
 
-  // 2. Eğer geriye bir veri geldiyse, haritayı oraya uçur!
-  if (selectedLocation != null) {
-    try {
-      // Önce Kaydedilenler ekranından gelen saf bir koordinat (LatLng) mi diye dener
-      _mapController.move(selectedLocation as LatLng, 16.0);
-    } catch (e) {
-      // Eğer üstteki kod hata verirse, demek ki Günlük Plan'dan bir PinModel gelmiştir!
-      // PinModel'in içindeki koordinatları alıp kendimiz bir LatLng oluşturuyoruz.
-      _mapController.move(
-        LatLng(selectedLocation.latitude, selectedLocation.longitude), 
-        16.0
-      );
+  if (result != null) {
+    setState(() {
+      _routePoints.clear(); 
+    });
+
+    if (result is Map && result['isRoute'] == true) {
+      final List dayPins = result['pins'];
+      if (dayPins.isNotEmpty) {
+        try {
+          List<LatLng> safeRoutePoints = [];
+          for (var pin in dayPins) {
+            safeRoutePoints.add(LatLng(pin.latitude, pin.longitude));
+          }  setState(() {
+            _routePoints = safeRoutePoints;
+            _routeColor = Color(result['themeColor']); 
+          });
+          
+          _mapController.move(_routePoints.first, 13.0); 
+        } catch (e) {
+          debugPrint("Rota çizim hatası: $e");
+        }
+      }
+    } 
+    else if (result is List) {
+       if (result.isNotEmpty) {
+          try {
+            List<LatLng> safeRoutePoints = [];
+            for (var pin in result) {
+              safeRoutePoints.add(LatLng(pin.latitude, pin.longitude));
+            }
+            setState(() {
+              _routePoints = safeRoutePoints;
+              _routeColor = Colors.blueAccent; 
+            });
+            _mapController.move(_routePoints.first, 13.0); 
+          } catch (e) {
+            debugPrint("Rota çizim hatası: $e");
+          }
+       }
+    }
+    else {
+      try {
+        _mapController.move(result as LatLng, 16.0);
+      } catch (e) {
+        _mapController.move(LatLng(result.latitude, result.longitude), 16.0);
+      }
     }
   }
-}
+},
               ),
-              IconButton(icon: const Icon(Icons.format_list_bulleted, color: Colors.blue), tooltip: 'Kaydedilen Yerler', onPressed: _showPinListBottomSheet),
+              IconButton(icon: const Icon(Icons.format_list_bulleted, color: Colors.blue), tooltip: AppLocalizations.of(context)!.savedPlacesTooltip, onPressed: _showPinListBottomSheet),
               IconButton(
                 icon: const Icon(Icons.logout),
                 onPressed: () async {
-                  await _authService.signOut();
+                  await _authService.signOut(context);
                   if (mounted) Navigator.pop(context);
                 },
               ),
@@ -628,6 +661,16 @@ void _showPinListBottomSheet() {
                         urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
                         userAgentPackageName: 'com.example.travel_planner',
                       ),
+      if (_routePoints.length > 1)
+              PolylineLayer(
+                polylines: [
+                  Polyline(
+                    points: _routePoints,
+                    color: _routeColor, 
+                    strokeWidth: 4.0,  
+                  ),
+                ],
+              ),
                       MarkerLayer(markers: savedMarkers), 
                     ],
                   ),
@@ -643,7 +686,7 @@ void _showPinListBottomSheet() {
                             Expanded(
                               child: TextField(
                                 controller: _searchController,
-                                decoration: const InputDecoration(hintText: 'Şehir veya mekan ara...', border: InputBorder.none, icon: Icon(Icons.search, color: Colors.grey)),
+                                decoration: InputDecoration(hintText: AppLocalizations.of(context)!.searchCityOrPlaceHint, border: InputBorder.none, icon: const Icon(Icons.search, color: Colors.grey)),
                                 onSubmitted: (_) => _handleSearch(), 
                               ),
                             ),

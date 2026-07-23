@@ -7,8 +7,9 @@ import '../../services/database_service.dart';
 import '../../models/pin_model.dart';
 import 'gallery_screen.dart';
 import 'saved_list_screen.dart';
-import '../settings/settings_screen.dart';
 import '../planner/planner_screen.dart';
+import 'package:travel_planner/l10n/app_localizations.dart';
+import '../settings/settings_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -24,6 +25,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   User? get _currentUser => FirebaseAuth.instance.currentUser;
 
   Future<void> _handleChangeProfilePhoto() async {
+    final l10n = AppLocalizations.of(context)!;
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(
       source: ImageSource.gallery,
@@ -46,16 +48,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Profil fotoğrafı güncellendi.'),
+          SnackBar(
+              content: Text(l10n.profilePhotoUpdated),
               backgroundColor: Colors.green),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Fotoğraf yüklenemedi.'),
+          SnackBar(
+              content: Text(l10n.profilePhotoUploadFailed),
               backgroundColor: Colors.red),
         );
       }
@@ -69,11 +71,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
-        title: const Text('Profilim',
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(l10n.profileAppBarTitle,
+            style: const TextStyle(fontWeight: FontWeight.bold)),
         elevation: 0,
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
@@ -166,7 +170,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 Navigator.pop(context, selectedLocation);
                               }
                             },
-                            child: _buildStatCard('Kayıtlı Yer',
+                            child: _buildStatCard(l10n.profileStatSavedPlaces,
                                 pins.length.toString(), Icons.map, Colors.blue),
                           ),
                         ),
@@ -181,7 +185,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                             ),
                             child: _buildStatCard(
-                                'Fotoğraflar',
+                                l10n.profileStatPhotos,
                                 photoPins.length.toString(),
                                 Icons.photo_library,
                                 Colors.green),
@@ -200,32 +204,49 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         borderRadius: BorderRadius.circular(15)),
                     child: Column(
                       children: [
-                       _buildMenuTile(Icons.calendar_month, 'Seyahat Planlama', () async {
-                          // YENİ: Planlama ekranından dönen pini yakalar
+                        _buildMenuTile(Icons.calendar_month, l10n.profileMenuTripPlanner, () async {
                           final resultPin = await Navigator.push(
                             context,
                             MaterialPageRoute(builder: (context) => const PlannerScreen()),
                           );
                           
-                          // Pini alıp nihai hedefe (Ana Haritaya) fırlatır
                           if (resultPin != null && context.mounted) {
                             Navigator.pop(context, resultPin);
                           }
-                        }, iconColor: Colors.orange), // Rengi kendi temana göre değiştirebilirsin
-                        _buildMenuTile(Icons.history, 'Geçmiş Seyahatlerim', () {
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Arşiv yakında aktif olacak!')));
-                        }, iconColor: Colors.purple),
-                        const Divider(height: 1),
-                        _buildMenuTile(Icons.settings, 'Ayarlar', () {
-                          Navigator.push(
+                        }, iconColor: Colors.orange), 
+                        
+                        _buildMenuTile(Icons.history, l10n.profileMenuPastTrips, () async {
+                          final resultPin = await Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (context) => const SettingsScreen()),
+                              builder: (context) => const PlannerScreen(initialTabIndex: 1), 
+                            ),
                           );
+
+                          if (resultPin != null && context.mounted) {
+                            Navigator.pop(context, resultPin);
+                          }
                         }, iconColor: Colors.blueGrey),
+
                         const Divider(height: 1),
+                        
+                        // YENİ EKLENEN AYARLAR BUTONU BURADA
                         _buildMenuTile(
-                            Icons.logout, 'Çıkış Yap', () => _authService.signOut(),
+                          Icons.settings, 
+                          l10n.settingsAppBarTitle, 
+                          () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                            );
+                          },
+                          iconColor: Colors.grey
+                        ),
+
+                        const Divider(height: 1),
+                        
+                        _buildMenuTile(
+                            Icons.logout, l10n.profileMenuLogout, () => _authService.signOut(context),
                             iconColor: Colors.red),
                       ],
                     ),

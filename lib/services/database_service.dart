@@ -1,10 +1,11 @@
+import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:developer' as developer;
+import 'package:travel_planner/l10n/app_localizations.dart';
 import '../models/pin_model.dart';
 import '../models/trip_model.dart';
-
 
 class DatabaseService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -22,33 +23,36 @@ class DatabaseService {
   }
 
   // 2. YENİ PİN EKLEME
-  Future<void> addPin(PinModel pin) async {
+  Future<void> addPin(BuildContext context, PinModel pin) async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       await _db.collection('pins').add(pin.toMap());
       developer.log('Pin başarıyla eklendi', name: 'DatabaseService');
     } catch (e) {
       developer.log('Add error: $e', name: 'DatabaseService');
-      throw Exception('Yer kaydedilemedi.');
+      throw Exception(l10n.dbErrorAddPin);
     }
   }
 
-  // 3. PİN GÜNCELLEME (Hata Aldığın Eksik Fonksiyon)
-  Future<void> updatePin(PinModel pin) async {
+  // 3. PİN GÜNCELLEME
+  Future<void> updatePin(BuildContext context, PinModel pin) async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       if (pin.id != null) {
         await _db.collection('pins').doc(pin.id).update(pin.toMap());
         developer.log('Pin başarıyla güncellendi', name: 'DatabaseService');
       } else {
-        throw Exception('Güncellenecek pinin IDsi bulunamadı.');
+        throw Exception(l10n.dbErrorPinIdNotFound);
       }
     } catch (e) {
       developer.log('Pin güncellenirken hata: $e', name: 'DatabaseService');
-      throw Exception('Yer güncellenemedi.');
+      throw Exception(l10n.dbErrorUpdatePin);
     }
   }
 
   // 4. PİN VE FOTOĞRAF SİLME
-  Future<void> deletePin(String id) async {
+  Future<void> deletePin(BuildContext context, String id) async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       final doc = await _db.collection('pins').doc(id).get();
       if (doc.exists) {
@@ -71,17 +75,19 @@ class DatabaseService {
       developer.log('Pin başarıyla silindi', name: 'DatabaseService');
     } catch (e) {
       developer.log('Pin silinirken hata: $e', name: 'DatabaseService');
-      throw Exception('Yer silinemedi.');
+      throw Exception(l10n.dbErrorDeletePin);
     }
   }
+
+  // TRIP METOTLARI
+  // Not: Bunlarda try-catch yapısı olmadığı için context göndermemize gerek kalmadı.
   Future<void> addTrip(TripModel trip) async {
     await _db.collection('trips').add(trip.toMap());
   }
 
-Stream<List<TripModel>> getUserTrips() {
+  Stream<List<TripModel>> getUserTrips() {
     return _db
         .collection('trips')
-        // BURASI DÜZELTİLDİ: _auth yerine FirebaseAuth.instance kullanıyoruz
         .where('userId', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
         .snapshots()
         .map((snapshot) => snapshot.docs
