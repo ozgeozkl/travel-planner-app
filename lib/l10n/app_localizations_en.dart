@@ -151,7 +151,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get placeNotFoundLongPress => 'Place not found. LONG PRESS on the map to add it yourself!';
 
   @override
-  String get myTravelMapTitle => 'My Travel Map';
+  String get myTravelMapTitle => 'planero';
 
   @override
   String get myProfileTooltip => 'My Profile';
@@ -483,7 +483,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get placesFallbackType => 'Place';
 
   @override
-  String get appTitle => 'Travel Planner';
+  String get appTitle => 'planero';
 
   @override
   String get securityApprovalTitle => 'Security Verification';
@@ -498,4 +498,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get returnToLoginButton => 'Return to Login';
+
+  @override
+  String get generalNotesTitle => 'General Notes';
+
+  @override
+  String get generalNotesHint => 'You can write all your general notes for Planero here...';
 }

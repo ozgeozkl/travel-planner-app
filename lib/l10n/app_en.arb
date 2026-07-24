@@ -55,7 +55,7 @@
   "mySavedPlaces": "My Saved Places",
   "addressLoadingOrNotFound": "Loading address or not found...",
   "placeNotFoundLongPress": "Place not found. LONG PRESS on the map to add it yourself!",
-  "myTravelMapTitle": "My Travel Map",
+  "myTravelMapTitle": "planero",
   "myProfileTooltip": "My Profile",
   "savedPlacesTooltip": "Saved Places",
   "searchCityOrPlaceHint": "Search city or place...",
@@ -196,7 +196,7 @@
   "dbErrorUpdatePin": "Failed to update the location.",
   "dbErrorDeletePin": "Failed to delete the location.",
   "placesFallbackType": "Place",
-  "appTitle": "Travel Planner",
+  "appTitle": "planero",
   "securityApprovalTitle": "Security Verification",
   "emailNotVerifiedMessage": "You have registered but have not yet verified the {email} address.",
   "@emailNotVerifiedMessage": {
@@ -207,5 +207,7 @@
     }
   },
   "checkInboxMessage": "Please check your inbox (or spam folder) and click the verification link. You can log in again after verifying.",
-  "returnToLoginButton": "Return to Login"
+  "returnToLoginButton": "Return to Login",
+  "generalNotesTitle": "General Notes",
+  "generalNotesHint": "You can write all your general notes for Planero here..."
 }

@@ -151,7 +151,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get placeNotFoundLongPress => 'Mekan bulunamadı. Haritaya UZUN BASARAK kendiniz ekleyebilirsiniz!';
 
   @override
-  String get myTravelMapTitle => 'Seyahat Haritam';
+  String get myTravelMapTitle => 'planero';
 
   @override
   String get myProfileTooltip => 'Profilim';
@@ -483,7 +483,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get placesFallbackType => 'Mekan';
 
   @override
-  String get appTitle => 'Seyahat Planlayıcı';
+  String get appTitle => 'planero';
 
   @override
   String get securityApprovalTitle => 'Güvenlik Onayı';
@@ -498,4 +498,10 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get returnToLoginButton => 'Giriş Ekranına Dön';
+
+  @override
+  String get generalNotesTitle => 'Genel Notlar';
+
+  @override
+  String get generalNotesHint => 'Planero için tüm genel notlarını buraya yazabilirsin...';
 }

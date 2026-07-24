@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/auth_service.dart';
 import 'package:travel_planner/l10n/app_localizations.dart';
+import 'package:travel_planner/main.dart'; // EKLENDİ: Dil değiştiren fonksiyonu kullanabilmek için
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -284,7 +285,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 borderRadius: BorderRadius.circular(15)),
             child: Column(
               children: [
-                // DİL SEÇİM MENÜSÜ EKLENDİ
                 ListTile(
                   leading: const Icon(Icons.language, color: Colors.green),
                   title: Text(l10n.settingsAppLanguage),
@@ -296,10 +296,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       DropdownMenuItem(value: 'en', child: Text('English')),
                     ],
                     onChanged: (String? newLanguageCode) {
+                      // GÜNCELLENDİ: Dil seçildiğinde TravelPlannerApp fonksiyonunu tetikliyoruz.
                       if (newLanguageCode != null && newLanguageCode != currentLanguageCode) {
-                        // TODO: Main.dart içerisindeki locale durumunu güncelleyen fonksiyonu çağır.
-                        // Örnek: Eğer main.dart'ta Provider veya Riverpod kullanıyorsan burada tetiklemen gerekir.
-                        // Veya GlobalKey kullanıyorsan: MyApp.setLocale(context, Locale(newLanguageCode));
+                        TravelPlannerApp.setLocale(context, Locale(newLanguageCode));
                       }
                     },
                   ),

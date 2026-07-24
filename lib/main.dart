@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // EKLENDİ
 import 'firebase_options.dart'; 
 import 'features/auth/login_screen.dart';
 import 'features/map/map_screen.dart';
@@ -18,8 +19,6 @@ void main() async {
 class TravelPlannerApp extends StatefulWidget {
   const TravelPlannerApp({super.key});
 
-  // Bu statik metot sayesinde uygulamanın herhangi bir yerinden 
-  // (örneğin SettingsScreen'den) dili anında değiştirebileceğiz!
   static void setLocale(BuildContext context, Locale newLocale) {
     _TravelPlannerAppState? state = context.findAncestorStateOfType<_TravelPlannerAppState>();
     state?.setLocale(newLocale);
@@ -32,16 +31,37 @@ class TravelPlannerApp extends StatefulWidget {
 class _TravelPlannerAppState extends State<TravelPlannerApp> {
   Locale? _locale;
 
-  void setLocale(Locale locale) {
+  // EKLENDİ: Uygulama başlarken hafızadaki dili yükle
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedLocale();
+  }
+
+  Future<void> _loadSavedLocale() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedLanguage = prefs.getString('languageCode');
+    
+    if (savedLanguage != null) {
+      setState(() {
+        _locale = Locale(savedLanguage);
+      });
+    }
+  }
+
+  // GÜNCELLENDİ: Dil değiştiğinde hem arayüzü güncelle hem de hafızaya kaydet
+  void setLocale(Locale locale) async {
     setState(() {
       _locale = locale;
     });
+    
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('languageCode', locale.languageCode);
   }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      // title yerine onGenerateTitle kullanıyoruz ki uygulama adı da dile göre değişsin
       onGenerateTitle: (context) => AppLocalizations.of(context)!.appTitle,
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
@@ -50,7 +70,7 @@ class _TravelPlannerAppState extends State<TravelPlannerApp> {
       ),
       
       // === DİL AYARLARI ===
-      locale: _locale, // Dinamik dil değişkenimiz
+      locale: _locale, 
       localizationsDelegates: const [
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
@@ -58,8 +78,8 @@ class _TravelPlannerAppState extends State<TravelPlannerApp> {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: const [
-        Locale('tr'), // Türkçe
-        Locale('en'), // İngilizce
+        Locale('tr'), 
+        Locale('en'), 
       ],
       // =====================
 
@@ -70,13 +90,8 @@ class _TravelPlannerAppState extends State<TravelPlannerApp> {
             return const Scaffold(body: Center(child: CircularProgressIndicator()));
           }
           
-          // 1. Kullanıcı giriş yapmış mı?
           if (snapshot.hasData) {
-            
-            // 2. KRİTİK KONTROL: E-postası doğrulanmış mı?
             if (!snapshot.data!.emailVerified) {
-              
-              // Localizations'ı home içindeki context'ten çekiyoruz
               final l10n = AppLocalizations.of(context)!;
               
               return Scaffold(
@@ -93,7 +108,6 @@ class _TravelPlannerAppState extends State<TravelPlannerApp> {
                         const Icon(Icons.mark_email_unread, size: 80, color: Colors.orange),
                         const SizedBox(height: 24),
                         Text(
-                          // Dinamik e-posta yerleşimi
                           l10n.emailNotVerifiedMessage(snapshot.data!.email ?? ''),
                           textAlign: TextAlign.center,
                           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -121,12 +135,8 @@ class _TravelPlannerAppState extends State<TravelPlannerApp> {
                 ),
               );
             }
-            
-            // Eğer hem giriş yapmış hem de e-postası doğrulanmışsa Haritaya geçebilir.
             return const MapScreen();
           }
-          
-          // Hiç giriş yapmamışsa Login ekranı
           return const LoginScreen();
         },
       ),

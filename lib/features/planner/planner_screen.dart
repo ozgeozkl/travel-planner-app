@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:table_calendar/table_calendar.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/trip_model.dart';
 import '../../services/database_service.dart';
 import 'trip_detail_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:travel_planner/l10n/app_localizations.dart';
+import 'general_notes_screen.dart';
 
 class PlannerScreen extends StatefulWidget {
   final int initialTabIndex; 
@@ -17,6 +20,52 @@ class PlannerScreen extends StatefulWidget {
 
 class _PlannerScreenState extends State<PlannerScreen> {
   final DatabaseService _databaseService = DatabaseService();
+  
+  // === TAKVİM VE NOT DEĞİŞKENLERİ ===
+  DateTime _focusedDay = DateTime.now();
+  DateTime? _selectedDay;
+  final TextEditingController _dailyNoteController = TextEditingController();
+  final TextEditingController _generalNoteController = TextEditingController();
+  SharedPreferences? _prefs;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedDay = _focusedDay;
+    _initPrefs();
+  }
+
+  // Hafızayı başlat ve genel notu yükle
+  Future<void> _initPrefs() async {
+    _prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _generalNoteController.text = _prefs?.getString('planner_general_note') ?? '';
+    });
+    _loadDailyNoteFor(_selectedDay!);
+  }
+
+  // Seçilen günün notunu getir
+  void _loadDailyNoteFor(DateTime date) {
+    if (_prefs == null) return;
+    final dateKey = DateFormat('yyyy-MM-dd').format(date);
+    setState(() {
+      _dailyNoteController.text = _prefs?.getString('note_$dateKey') ?? '';
+    });
+  }
+
+  // Günlük notu kaydet
+  void _saveDailyNote(String value) {
+    if (_prefs == null || _selectedDay == null) return;
+    final dateKey = DateFormat('yyyy-MM-dd').format(_selectedDay!);
+    _prefs?.setString('note_$dateKey', value);
+  }
+
+  // Genel notu kaydet
+  void _saveGeneralNote(String value) {
+    if (_prefs == null) return;
+    _prefs?.setString('planner_general_note', value);
+  }
+  // ===================================
 
   void _showCreateTripDialog() {
     final titleController = TextEditingController();
@@ -215,6 +264,8 @@ class _PlannerScreenState extends State<PlannerScreen> {
             ],
           ),
         ),
+        
+        // EKRANI İKİYE BÖLDÜĞÜMÜZ YER
         body: StreamBuilder<List<TripModel>>(
           stream: _databaseService.getUserTrips(),
           builder: (context, snapshot) {
@@ -223,14 +274,30 @@ class _PlannerScreenState extends State<PlannerScreen> {
             }
 
             final allTrips = snapshot.data ?? [];
-
             final activeTrips = allTrips.where((t) => !t.isPast).toList();
             final pastTrips = allTrips.where((t) => t.isPast).toList();
 
-            return TabBarView(
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildTripList(activeTrips, isPastList: false),
-                _buildTripList(pastTrips, isPastList: true),
+                // SOL TARAF: TAKVİM VE NOTLAR (Ekranda 4 birim yer kaplar)
+                Expanded(
+                  flex: 4,
+                  child: _buildCalendarPanel(allTrips),
+                ),
+                
+                const VerticalDivider(width: 1, thickness: 1, color: Colors.black12),
+                
+                // SAĞ TARAF: SEYAHAT LİSTESİ (Ekranda 6 birim yer kaplar)
+                Expanded(
+                  flex: 6,
+                  child: TabBarView(
+                    children: [
+                      _buildTripList(activeTrips, isPastList: false),
+                      _buildTripList(pastTrips, isPastList: true),
+                    ],
+                  ),
+                ),
               ],
             );
           },
@@ -242,6 +309,113 @@ class _PlannerScreenState extends State<PlannerScreen> {
           icon: const Icon(Icons.add),
           label: Text(AppLocalizations.of(context)!.plannerNewTripFab),
         ),
+      ),
+    );
+  }
+
+// === YENİ EKLENEN TAKVİM VE NOTLAR PANELİ (ÇOKLU DİL DESTEKLİ) ===
+  Widget _buildCalendarPanel(List<TripModel> allTrips) {
+    // Çevirileri kullanmak için localizations değişkenini tanımlıyoruz
+    final localizations = AppLocalizations.of(context)!;
+
+    return Container(
+      color: Colors.white,
+      child: Column(
+        children: [
+          // 1. TAKVİM
+          TableCalendar(
+            firstDay: DateTime.utc(2020, 1, 1),
+            lastDay: DateTime.utc(2030, 12, 31),
+            focusedDay: _focusedDay,
+            selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+            onDaySelected: (selectedDay, focusedDay) {
+              setState(() {
+                _selectedDay = selectedDay;
+                _focusedDay = focusedDay;
+              });
+            },
+            calendarStyle: const CalendarStyle(
+              todayDecoration: BoxDecoration(color: Colors.orangeAccent, shape: BoxShape.circle),
+              selectedDecoration: BoxDecoration(color: Colors.deepOrange, shape: BoxShape.circle),
+              markersMaxCount: 1,
+            ),
+            headerStyle: const HeaderStyle(
+              formatButtonVisible: false,
+              titleCentered: true,
+            ),
+            eventLoader: (day) {
+              return allTrips.where((trip) {
+                final tStart = DateTime(trip.startDate.year, trip.startDate.month, trip.startDate.day);
+                final tEnd = DateTime(trip.endDate.year, trip.endDate.month, trip.endDate.day);
+                final current = DateTime(day.year, day.month, day.day);
+                return current.isAfter(tStart.subtract(const Duration(days: 1))) && 
+                       current.isBefore(tEnd.add(const Duration(days: 1)));
+              }).toList();
+            },
+            calendarBuilders: CalendarBuilders(
+              markerBuilder: (context, date, events) {
+                if (events.isNotEmpty) {
+                  final trip = events.first as TripModel; 
+                  
+                  final current = DateTime(date.year, date.month, date.day);
+                  final tStart = DateTime(trip.startDate.year, trip.startDate.month, trip.startDate.day);
+                  final tEnd = DateTime(trip.endDate.year, trip.endDate.month, trip.endDate.day);
+
+                  if (current.isAtSameMomentAs(tStart) || current.isAtSameMomentAs(tEnd)) {
+                    return const Positioned(
+                      bottom: 0,
+                      child: Icon(Icons.flight, size: 14, color: Colors.deepOrange),
+                    );
+                  } 
+                  else {
+                    return Positioned(
+                      bottom: 0,
+                      child: Text(
+                        trip.title,
+                        style: const TextStyle(
+                          fontSize: 10, 
+                          color: Colors.deepOrange, 
+                          fontWeight: FontWeight.bold,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    );
+                  }
+                }
+                return null;
+              },
+            ),
+          ), 
+
+          // 2. YENİ EKLENEN GENEL NOTLAR BUTONU (DİL DESTEKLİ)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24.0, horizontal: 20.0),
+            child: ElevatedButton.icon(
+              onPressed: () {
+                // Genel Notlar sayfasına geçiş yapıyoruz
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const GeneralNotesScreen()),
+                );
+              },
+              icon: const Icon(Icons.edit_document),
+              // Sabit metin yerine dil dosyasındaki generalNotesTitle değişkenini çağırıyoruz
+              label: Text(
+                localizations.generalNotesTitle,
+                style: const TextStyle(fontSize: 16),
+              ),
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size(double.infinity, 50), 
+                backgroundColor: Colors.deepOrange, 
+                foregroundColor: Colors.white, 
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

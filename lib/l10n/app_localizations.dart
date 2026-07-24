@@ -374,7 +374,7 @@ abstract class AppLocalizations {
   /// No description provided for @myTravelMapTitle.
   ///
   /// In en, this message translates to:
-  /// **'My Travel Map'**
+  /// **'planero'**
   String get myTravelMapTitle;
 
   /// No description provided for @myProfileTooltip.
@@ -1010,7 +1010,7 @@ abstract class AppLocalizations {
   /// No description provided for @appTitle.
   ///
   /// In en, this message translates to:
-  /// **'Travel Planner'**
+  /// **'planero'**
   String get appTitle;
 
   /// No description provided for @securityApprovalTitle.
@@ -1036,6 +1036,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Return to Login'**
   String get returnToLoginButton;
+
+  /// No description provided for @generalNotesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'General Notes'**
+  String get generalNotesTitle;
+
+  /// No description provided for @generalNotesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'You can write all your general notes for Planero here...'**
+  String get generalNotesHint;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

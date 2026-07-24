@@ -119,7 +119,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     
                     // Başlıklar
                     Text(
-                      'Travel Planner', // Proje adı olduğu için sabit bırakıldı
+                      'Planero', // Proje adı olduğu için sabit bırakıldı
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                         fontWeight: FontWeight.bold,

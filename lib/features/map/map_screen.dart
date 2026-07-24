@@ -573,7 +573,7 @@ void _showPinListBottomSheet() {
 
         return Scaffold(
           appBar: AppBar(
-            title: Text(AppLocalizations.of(context)!.myTravelMapTitle, style: const TextStyle(fontWeight: FontWeight.bold)),
+            title: Text(AppLocalizations.of(context)!.appTitle, style: const TextStyle(fontWeight: FontWeight.bold)), // kendi style ayarlarını koruyabilirsin
             actions: [
               IconButton(
                 icon: const Icon(Icons.person, color: Colors.blue),

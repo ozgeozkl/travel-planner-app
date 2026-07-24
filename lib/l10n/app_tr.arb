@@ -55,7 +55,7 @@
   "mySavedPlaces": "Kaydettiğim Yerler",
   "addressLoadingOrNotFound": "Adres yükleniyor veya bulunamadı...",
   "placeNotFoundLongPress": "Mekan bulunamadı. Haritaya UZUN BASARAK kendiniz ekleyebilirsiniz!",
-  "myTravelMapTitle": "Seyahat Haritam",
+  "myTravelMapTitle": "planero",
   "myProfileTooltip": "Profilim",
   "savedPlacesTooltip": "Kaydedilen Yerler",
   "searchCityOrPlaceHint": "Şehir veya mekan ara...",
@@ -196,7 +196,7 @@
   "dbErrorUpdatePin": "Yer güncellenemedi.",
   "dbErrorDeletePin": "Yer silinemedi.",
   "placesFallbackType": "Mekan",
-  "appTitle": "Seyahat Planlayıcı",
+  "appTitle": "planero",
   "securityApprovalTitle": "Güvenlik Onayı",
   "emailNotVerifiedMessage": "Kayıt oldunuz ancak {email} adresini henüz onaylamadınız.",
   "@emailNotVerifiedMessage": {
@@ -207,5 +207,7 @@
     }
   },
   "checkInboxMessage": "Lütfen gelen kutunuzu (veya spam klasörünü) kontrol edip onay linkine tıklayın. Onayladıktan sonra tekrar giriş yapabilirsiniz.",
-  "returnToLoginButton": "Giriş Ekranına Dön"
+  "returnToLoginButton": "Giriş Ekranına Dön",
+  "generalNotesTitle": "Genel Notlar",
+  "generalNotesHint": "Planero için tüm genel notlarını buraya yazabilirsin..."
 }
